@@ -1,0 +1,6 @@
+{
+  "name": "ColdLine AI",
+  "description": "Generate high-converting cold email icebreakers in seconds using AI personalizer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

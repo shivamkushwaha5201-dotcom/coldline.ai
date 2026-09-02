@@ -1,11 +1,27 @@
-<div align="center">
+# ColdLine AI
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+High-converting cold email icebreaker generator powered by Gemini 2.5 Flash.
 
-  <h1>Built with AI Studio</h2>
+## Overview
+ColdLine AI turns company websites, LinkedIn bios, and prospect notes into tailored, relevant cold email opening hooks in seconds.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Features
+- **3 Tailored Hooks per Prospect**: Specific observation, pain-point relevance, and compliment/credibility angles.
+- **Multiple Tones**: Professional, Casual, Direct, and Witty.
+- **Instant Copy**: 1-click clipboard copying and email client preview.
+- **Fast Gemini Engine**: Powered by Google Gemini 2.5 Flash.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Getting Started
 
-</div>
+1. Set up your Gemini API key in `.env.local` or directly through the in-app key manager:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
