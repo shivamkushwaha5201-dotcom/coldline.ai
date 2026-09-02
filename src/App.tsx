@@ -59,13 +59,45 @@ export default function App() {
         }),
       });
 
-      const data = await response.json();
-
+      // Ensure response is checked for response.ok before calling res.json()
       if (!response.ok) {
-        throw new Error(data.error || "Failed to generate icebreakers. Please try again.");
+        let errMessage = "";
+        try {
+          const errData = await response.json();
+          errMessage = errData?.error;
+        } catch {
+          const rawText = await response.text().catch(() => "");
+          errMessage = rawText;
+        }
+
+        if (!errMessage) {
+          if (response.status === 401 || response.status === 403) {
+            errMessage = "Invalid or missing Gemini API Key. Please verify your API key in Settings.";
+          } else if (response.status === 429) {
+            errMessage = "Gemini API rate limit or quota exceeded. Please wait a moment before trying again.";
+          } else {
+            errMessage = `Request failed with status ${response.status}. Please check your connection.`;
+          }
+        } else {
+          const lower = errMessage.toLowerCase();
+          if (lower.includes("api key") || lower.includes("unauthorized") || lower.includes("invalid_argument")) {
+            errMessage = "Gemini API Key error: Please check that your key is valid and entered correctly.";
+          } else if (lower.includes("quota") || lower.includes("rate limit") || lower.includes("resourceexhausted") || lower.includes("429")) {
+            errMessage = "Gemini API quota or rate limit exceeded. Please wait a moment or update your API key in Settings.";
+          }
+        }
+        throw new Error(errMessage);
       }
 
-      if (data.icebreakers && Array.isArray(data.icebreakers)) {
+      // Safe JSON parsing after confirming response.ok
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        throw new Error("Unable to parse response from server. Please try again.");
+      }
+
+      if (data && data.icebreakers && Array.isArray(data.icebreakers)) {
         setIcebreakers(data.icebreakers);
         if (data.normalizedInput) {
           setNormalizedInput(data.normalizedInput);

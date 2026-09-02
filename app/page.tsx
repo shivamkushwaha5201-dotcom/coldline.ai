@@ -14,7 +14,7 @@ const TONES: { id: ToneOption; label: string; desc: string }[] = [
 export default function Home() {
   const [input, setInput] = useState("");
   const [tone, setTone] = useState<ToneOption>("Professional");
-  const [apiKey, setApiKey] = useState("AQ.Ab8RN6L5QDp0kDnz4wAuLimYkPEWNUy_xh0v70fa-uHRIgqtog");
+  const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [icebreakers, setIcebreakers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,15 +32,52 @@ export default function Home() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input, tone, apiKey }),
+        body: JSON.stringify({
+          input: input.trim(),
+          tone,
+          apiKey: apiKey.trim() || undefined,
+        }),
       });
 
-      const data = await res.json();
+      // Ensure response is checked for res.ok before calling res.json()
       if (!res.ok) {
-        throw new Error(data.error || "Failed to generate icebreakers");
+        let errMessage = "";
+        try {
+          const errData = await res.json();
+          errMessage = errData?.error;
+        } catch {
+          const rawText = await res.text().catch(() => "");
+          errMessage = rawText;
+        }
+
+        if (!errMessage) {
+          if (res.status === 401 || res.status === 403) {
+            errMessage = "Invalid or missing Gemini API Key. Please enter a valid API key.";
+          } else if (res.status === 429) {
+            errMessage = "Gemini API rate limit or quota exceeded. Please wait a moment before trying again.";
+          } else {
+            errMessage = `Request failed with status ${res.status}. Please check your connection.`;
+          }
+        } else {
+          const lower = errMessage.toLowerCase();
+          if (lower.includes("api key") || lower.includes("unauthorized") || lower.includes("invalid_argument")) {
+            errMessage = "Gemini API Key validation failed. Please check that your key is active.";
+          } else if (lower.includes("quota") || lower.includes("rate limit") || lower.includes("resourceexhausted") || lower.includes("429")) {
+            errMessage = "Gemini API quota or rate limit exceeded. Please wait a moment or configure an active API key.";
+          }
+        }
+        throw new Error(errMessage);
       }
 
-      setIcebreakers(data.icebreakers || []);
+      // Safe JSON parsing after confirming res.ok
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Unable to parse server response. Please try again.");
+      }
+
+      setIcebreakers(data?.icebreakers || []);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
