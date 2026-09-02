@@ -3,7 +3,6 @@ import { Header } from "./components/Header";
 import { HeroInput } from "./components/HeroInput";
 import { HowToUse } from "./components/HowToUse";
 import { OutputSection } from "./components/OutputSection";
-import { CodeModal } from "./components/CodeModal";
 import { ApiKeyModal } from "./components/ApiKeyModal";
 import { ToneOption } from "./types";
 
@@ -26,7 +25,6 @@ export default function App() {
   ]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
-  const [isCodeModalOpen, setIsCodeModalOpen] = useState<boolean>(false);
   const [normalizedInput, setNormalizedInput] = useState<string>("https://linear.app");
 
   // Sync apiKey to localStorage
@@ -97,7 +95,6 @@ export default function App() {
 
       {/* Main Header */}
       <Header
-        onOpenCodeModal={() => setIsCodeModalOpen(true)}
         onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
         hasApiKey={Boolean(apiKey)}
         apiKeyPreview={apiKey}
@@ -148,24 +145,10 @@ export default function App() {
               Configure API Key
             </button>
             <span>•</span>
-            <button
-              type="button"
-              onClick={() => setIsCodeModalOpen(true)}
-              className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
-            >
-              Export Next.js Source Code
-            </button>
-            <span>•</span>
             <span className="font-mono text-zinc-400">Google Gemini</span>
           </div>
         </div>
       </footer>
-
-      {/* Next.js Source Code Modal */}
-      <CodeModal
-        isOpen={isCodeModalOpen}
-        onClose={() => setIsCodeModalOpen(false)}
-      />
 
       {/* API Key Modal */}
       <ApiKeyModal

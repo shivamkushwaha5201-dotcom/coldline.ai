@@ -1,15 +1,13 @@
 import React from "react";
-import { Mail, Code2, Sparkles, CheckCircle2, ShieldAlert } from "lucide-react";
+import { Mail, Sparkles } from "lucide-react";
 
 interface HeaderProps {
-  onOpenCodeModal: () => void;
   onOpenApiKeyModal: () => void;
   hasApiKey: boolean;
   apiKeyPreview?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  onOpenCodeModal,
   onOpenApiKeyModal,
   hasApiKey,
   apiKeyPreview,
@@ -46,17 +44,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-indigo-300 font-mono">
               {apiKeyPreview ? `${apiKeyPreview.slice(0, 6)}...${apiKeyPreview.slice(-4)}` : "Set Key"}
             </span>
-          </button>
-
-          {/* Next.js Code Drawer Trigger */}
-          <button
-            type="button"
-            onClick={onOpenCodeModal}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 hover:border-zinc-700 transition-colors shadow-sm cursor-pointer"
-          >
-            <Code2 className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden sm:inline">Next.js Code & Setup</span>
-            <span className="sm:hidden">Code</span>
           </button>
         </div>
       </div>
