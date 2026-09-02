@@ -143,6 +143,17 @@ function formatGeminiError(error: any): { status: number; message: string } {
   }
 
   if (
+    errMsg.includes("not found") ||
+    errMsg.includes("404") ||
+    errMsg.includes("model not found")
+  ) {
+    return {
+      status: 404,
+      message: "The requested Gemini model was not found or is deprecated. Please ensure using gemini-3.8-flash or gemini-3.6-flash.",
+    };
+  }
+
+  if (
     errMsg.includes("quota") ||
     errMsg.includes("resource_exhausted") ||
     errMsg.includes("resourceexhausted") ||
@@ -184,6 +195,24 @@ async function startServer() {
   // Health check endpoint
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", app: "ColdLine AI" });
+  });
+
+  // GET and OPTIONS for /api/generate to support health probes and avoid 404
+  app.get("/api/generate", (_req, res) => {
+    res.json({
+      status: "ok",
+      endpoint: "/api/generate",
+      method: "POST",
+      description: "Cold email icebreaker generator. Send a POST request with { input, tone, apiKey? }.",
+      models: ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-flash-latest"],
+    });
+  });
+
+  app.options("/api/generate", (_req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-gemini-api-key");
+    res.sendStatus(204);
   });
 
   // Icebreaker generation endpoint
@@ -258,8 +287,8 @@ Tone requested: ${tone}
 Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
 
       const candidateModels = [
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
+        "gemini-3.8-flash",
+        "gemini-3.6-flash",
         "gemini-flash-latest",
       ];
       let rawText = "";

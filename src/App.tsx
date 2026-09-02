@@ -71,7 +71,9 @@ export default function App() {
         }
 
         if (!errMessage) {
-          if (response.status === 401 || response.status === 403) {
+          if (response.status === 404) {
+            errMessage = "API endpoint or model not found (404). Please verify the endpoint or Gemini model.";
+          } else if (response.status === 401 || response.status === 403) {
             errMessage = "Invalid or missing Gemini API Key. Please verify your API key in Settings.";
           } else if (response.status === 429) {
             errMessage = "Gemini API rate limit or quota exceeded. Please wait a moment before trying again.";
@@ -80,7 +82,9 @@ export default function App() {
           }
         } else {
           const lower = errMessage.toLowerCase();
-          if (lower.includes("api key") || lower.includes("unauthorized") || lower.includes("invalid_argument")) {
+          if (lower.includes("not found") || lower.includes("404")) {
+            errMessage = "Gemini model or endpoint not found (404). Please ensure using a supported model like gemini-3.8-flash.";
+          } else if (lower.includes("api key") || lower.includes("unauthorized") || lower.includes("invalid_argument")) {
             errMessage = "Gemini API Key error: Please check that your key is valid and entered correctly.";
           } else if (lower.includes("quota") || lower.includes("rate limit") || lower.includes("resourceexhausted") || lower.includes("429")) {
             errMessage = "Gemini API quota or rate limit exceeded. Please wait a moment or update your API key in Settings.";
