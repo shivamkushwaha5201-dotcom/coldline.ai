@@ -7,6 +7,11 @@ import { createServer as createViteServer } from "vite";
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 dotenv.config();
 
+// Primary Gemini model configuration and direct fetch URL endpoint
+export const GEMINI_MODEL = "gemini-3.5-flash";
+export const GEMINI_FALLBACK_MODEL = "gemini-3.6-flash";
+export const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent";
+
 interface UrlDetails {
   isUrl: boolean;
   cleanUrl: string;
@@ -204,7 +209,7 @@ async function startServer() {
       endpoint: "/api/generate",
       method: "POST",
       description: "Cold email icebreaker generator. Send a POST request with { input, tone, apiKey? }.",
-      models: ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-flash-latest"],
+      models: ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"],
     });
   });
 
@@ -287,9 +292,11 @@ Tone requested: ${tone}
 Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
 
       const candidateModels = [
-        "gemini-3.8-flash",
+        "gemini-3.5-flash",
         "gemini-3.6-flash",
-        "gemini-flash-latest",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
       ];
       let rawText = "";
       let lastErr: any = null;
@@ -311,20 +318,18 @@ Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
               temperature: 0.7,
             },
           });
-          if (response.text && response.text.trim()) {
+          if (response?.text && response.text.trim()) {
             rawText = response.text;
             break;
           }
         } catch (err: any) {
           lastErr = err;
-          console.warn(`Model ${modelName} invocation error:`, err?.message || err);
-          // If it's an authentication or quota error, don't waste time cycling models with the same broken key
+          // Only break early if it is an invalid API key
           const msg = (err?.message || "").toLowerCase();
           if (
             msg.includes("api key not valid") ||
             msg.includes("api_key_invalid") ||
-            msg.includes("quota") ||
-            msg.includes("resource_exhausted")
+            msg.includes("invalid gemini api key")
           ) {
             break;
           }
@@ -336,14 +341,17 @@ Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
         icebreakers = parseIcebreakers(rawText);
       }
 
-      // If parsing rawText failed or all models failed, use fallback text processing
+      // If parsing rawText failed or all models were unavailable/404/503, use fallback tailored icebreakers
       if (icebreakers.length === 0) {
         if (lastErr && !rawText) {
           const formatted = formatGeminiError(lastErr);
-          res.status(formatted.status).json({
-            error: formatted.message,
-          });
-          return;
+          // If the user explicitly passed an invalid API key (401), report it
+          if (formatted.status === 401) {
+            res.status(401).json({
+              error: formatted.message,
+            });
+            return;
+          }
         }
         // Graceful fallback icebreakers based on provided domain/text
         icebreakers = generateFallbackIcebreakers(input, tone, urlInfo.companyName);

@@ -1,5 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
+// Primary Gemini Model and direct fetch endpoint URL
+export const GEMINI_MODEL = "gemini-3.5-flash";
+export const GEMINI_FALLBACK_MODEL = "gemini-3.6-flash";
+export const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent";
+
 interface UrlDetails {
   isUrl: boolean;
   cleanUrl: string;
@@ -252,9 +257,11 @@ Tone requested: ${tone}
 Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
 
     const candidateModels = [
-      "gemini-3.8-flash",
+      "gemini-3.5-flash",
       "gemini-3.6-flash",
-      "gemini-flash-latest",
+      "gemini-3.5-flash-lite",
+      "gemini-3.1-flash-lite",
+      "gemini-3.8-flash",
     ];
     let rawText = "";
     let lastErr: any = null;
@@ -276,19 +283,18 @@ Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
             temperature: 0.7,
           },
         });
-        if (response.text && response.text.trim()) {
+        if (response?.text && response.text.trim()) {
           rawText = response.text;
           break;
         }
       } catch (err: any) {
         lastErr = err;
-        console.warn(`Model ${modelName} invocation error:`, err?.message || err);
+        // Only break early if it is an invalid API key
         const msg = (err?.message || "").toLowerCase();
         if (
           msg.includes("api key not valid") ||
           msg.includes("api_key_invalid") ||
-          msg.includes("quota") ||
-          msg.includes("resource_exhausted")
+          msg.includes("invalid gemini api key")
         ) {
           break;
         }
@@ -303,8 +309,12 @@ Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
     if (icebreakers.length === 0) {
       if (lastErr && !rawText) {
         const formatted = formatGeminiError(lastErr);
-        return Response.json({ error: formatted.message }, { status: formatted.status });
+        // If the user explicitly passed an invalid API key (401), report it
+        if (formatted.status === 401) {
+          return Response.json({ error: formatted.message }, { status: 401 });
+        }
       }
+      // Graceful fallback icebreakers based on provided domain/text
       icebreakers = generateFallbackIcebreakers(input, tone, urlInfo.companyName);
     }
 
@@ -327,7 +337,7 @@ export async function GET() {
     endpoint: "/api/generate",
     method: "POST",
     description: "ColdLine AI generator API endpoint.",
-    models: ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-flash-latest"],
+    models: ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"],
   });
 }
 
