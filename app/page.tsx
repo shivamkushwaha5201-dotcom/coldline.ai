@@ -19,7 +19,12 @@ function parseIcebreakers(rawText: string): string[] {
     const cleaned = rawText.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.map((item) => String(item).trim()).filter(Boolean);
+      return parsed.map((item) => {
+        if (typeof item === "object" && item !== null) {
+          return item.pitch || item.text || JSON.stringify(item);
+        }
+        return String(item).trim();
+      }).filter(Boolean);
     }
   } catch {
     const match = rawText.match(/\[[\s\S]*\]/);
@@ -27,7 +32,12 @@ function parseIcebreakers(rawText: string): string[] {
       try {
         const parsed = JSON.parse(match[0]);
         if (Array.isArray(parsed)) {
-          return parsed.map((item) => String(item).trim()).filter(Boolean);
+          return parsed.map((item) => {
+            if (typeof item === "object" && item !== null) {
+              return item.pitch || item.text || JSON.stringify(item);
+            }
+            return String(item).trim();
+          }).filter(Boolean);
         }
       } catch {}
     }
@@ -44,6 +54,7 @@ function parseIcebreakers(rawText: string): string[] {
 
 export default function Home() {
   const [input, setInput] = useState("");
+  const [userPerspective, setUserPerspective] = useState("");
   const [tone, setTone] = useState<ToneOption>("Professional");
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
@@ -58,7 +69,7 @@ export default function Home() {
 
     const effectiveKey = apiKey.trim() || (typeof window !== "undefined" ? localStorage.getItem("coldline_gemini_api_key") || "" : "");
     if (!effectiveKey) {
-      setError("Please enter your Gemini API Key in the field below to generate icebreakers.");
+      setError("Please enter your Gemini API Key in the field below to generate pitches.");
       return;
     }
 
@@ -69,15 +80,26 @@ export default function Home() {
       // Direct client-side call to @google/generative-ai SDK from the browser
       const genAI = new GoogleGenerativeAI(effectiveKey);
 
-      const prompt = `You are a cold email copywriter. Generate exactly 3 personalized, punchy opening lines (icebreakers) for cold outreach to this prospect company or bio:
-"${input.trim()}"
+      const targetData = input.trim();
+      const perspective = userPerspective.trim() || "I provide high-impact services and help growth teams scale.";
 
-Tone: ${tone}
-Requirements:
-- 1-2 sentences per icebreaker.
-- Specific observation, trigger event, or tailored value angle.
-- Never use generic openers like "Hope you are doing well".
-- Return ONLY a JSON array of 3 strings. Example: ["Opening sentence 1", "Opening sentence 2", "Opening sentence 3"]`;
+      const prompt = `You are an expert cold outreach strategist. Read the target founder/company details (${targetData}) and the user's specific background and goal (${perspective}). Generate 3 highly personalized, high-converting cold outreach hooks that directly bridge the user's offered value to the target's specific business context.
+
+Target Founder / Company Details:
+"${targetData}"
+
+User's Specific Background and Goal:
+"${perspective}"
+
+Tone requested: ${tone}
+
+Generate 3 custom pitch options:
+1. "Observation Hook": Highlighting something specific about their recent posts/company work.
+2. "Direct Pitch Hook": Directly connecting user's service/skill to a problem the company might be facing.
+3. "Soft Inquiry Hook": A low-friction opening question to start a conversation.
+
+Return strictly a valid JSON array of 3 strings containing each generated hook.
+Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
 
       let rawText = "";
 
@@ -93,7 +115,6 @@ Requirements:
         rawText = result.response.text();
       } catch (modelErr: any) {
         const errMsg = (modelErr?.message || "").toLowerCase();
-        // If gemini-1.5-flash is not found (404/deprecated in this environment), fallback to active model
         if (errMsg.includes("404") || errMsg.includes("not found") || errMsg.includes("no longer available")) {
           const fallbackModel = genAI.getGenerativeModel({
             model: "gemini-3.5-flash",
@@ -110,13 +131,13 @@ Requirements:
 
       const parsed = parseIcebreakers(rawText);
       if (parsed.length === 0) {
-        throw new Error("Unable to parse icebreakers from Gemini response. Please try again.");
+        throw new Error("Unable to parse pitch hooks from Gemini response. Please try again.");
       }
 
       setIcebreakers(parsed);
     } catch (err: any) {
       console.error("Client generation error:", err);
-      let friendly = err?.message || "Failed to generate icebreakers.";
+      let friendly = err?.message || "Failed to generate pitches.";
       const lower = friendly.toLowerCase();
       if (lower.includes("api_key_invalid") || lower.includes("api key not valid") || lower.includes("unauthorized") || lower.includes("400")) {
         friendly = "Invalid Gemini API key. Please check that your key is correct and active.";
@@ -160,10 +181,10 @@ Requirements:
       <div className="flex-1 max-w-4xl w-full mx-auto px-6 py-12 space-y-10 overflow-visible">
         <div className="text-center space-y-3">
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            Generate High-Converting Cold Email Icebreakers in Seconds
+            Tailored Cold Outreach & Pitch Personalizer
           </h1>
           <p className="text-zinc-400 max-w-xl mx-auto text-sm sm:text-base">
-            Paste any company website URL or bio snippet to generate 3 personalized opening hooks that command attention.
+            Paste any company website URL or bio snippet along with your unique background and perspective to generate 3 high-converting hooks.
           </p>
         </div>
 
@@ -172,20 +193,39 @@ Requirements:
           onSubmit={handleGenerate}
           className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-5 overflow-visible"
         >
+          {/* Target Company / Founder Link or Info */}
           <div className="space-y-2">
             <label
-              htmlFor="input"
+              htmlFor="targetDataInput"
               className="text-xs font-semibold uppercase tracking-wider text-zinc-400"
             >
-              Prospect's Website URL or Company Text / Bio
+              Target Company / Founder Link or Info
             </label>
             <textarea
-              id="input"
-              rows={3}
+              id="targetDataInput"
+              rows={2}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="e.g. stripe.com or 'Acme Corp is an automated compliance platform for fintechs...'"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+
+          {/* Your Pitch Perspective & Context Field */}
+          <div className="space-y-2">
+            <label
+              htmlFor="userPerspectiveInput"
+              className="text-xs font-semibold uppercase tracking-wider text-zinc-400"
+            >
+              Your Pitch Perspective & Context
+            </label>
+            <textarea
+              id="userPerspectiveInput"
+              rows={3}
+              value={userPerspective}
+              onChange={(e) => setUserPerspective(e.target.value)}
+              placeholder="e.g., I'm a short-form video editor and I want to pitch them on re-editing their podcast clips for TikTok and Reels to boost engagement."
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 min-h-[85px]"
             />
           </div>
 
@@ -256,7 +296,7 @@ Requirements:
                 disabled={loading || !input.trim()}
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-600/25 cursor-pointer"
               >
-                {loading ? "Analyzing & Generating..." : "Generate Icebreakers →"}
+                {loading ? "Analyzing Target & Context..." : "Generate Tailored Pitches →"}
               </button>
             </div>
           </div>
@@ -272,7 +312,7 @@ Requirements:
         {icebreakers.length > 0 && (
           <div className="space-y-4 pt-4 overflow-visible">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Generated Icebreakers</h2>
+              <h2 className="text-lg font-bold text-white">Generated Pitch Hooks</h2>
               <button
                 type="button"
                 onClick={() => handleGenerate()}
@@ -298,7 +338,7 @@ Requirements:
                       onClick={() => copyToClipboard(line, idx)}
                       className="text-xs px-3 py-1 rounded-lg bg-zinc-800 hover:bg-indigo-600 text-zinc-200 hover:text-white transition-colors cursor-pointer"
                     >
-                      {copiedIndex === idx ? "Copied!" : "Copy to Clipboard"}
+                      {copiedIndex === idx ? "Copied!" : "Copy Hook"}
                     </button>
                   </div>
                   <p className="text-zinc-200 text-sm leading-relaxed">"{line}"</p>
@@ -308,7 +348,7 @@ Requirements:
           </div>
         )}
 
-        {/* How to Use / 3-Step Guide (Positioned AFTER Results) */}
+        {/* How to Use / 3-Step Guide */}
         <section className="rounded-2xl bg-zinc-900/40 border border-zinc-800/70 p-5 backdrop-blur-md overflow-visible">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 mb-4 border-b border-zinc-800/60">
             <div className="flex items-center gap-2">
@@ -334,7 +374,7 @@ Requirements:
                   Step 01
                 </span>
               </div>
-              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Paste Prospect Info</h3>
+              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Target Info</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
                 Enter your prospect's website URL, LinkedIn post, or company bio.
               </p>
@@ -346,9 +386,9 @@ Requirements:
                   Step 02
                 </span>
               </div>
-              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Choose Tone & Key</h3>
+              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Your Pitch Perspective</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Select your preferred tone (Casual, Direct, Professional) and ensure your Gemini API key is active.
+                Describe your unique service, context, or goal in the flexible perspective textarea.
               </p>
             </div>
 
@@ -358,9 +398,9 @@ Requirements:
                   Step 03
                 </span>
               </div>
-              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Generate & Copy</h3>
+              <h3 className="text-sm font-semibold text-zinc-100 mb-1">Generate Tailored Hooks</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Click 'Generate Icebreakers' to instantly get 3 personalized email opening lines ready to copy.
+                Instantly get 3 personalized cold outreach hooks designed to maximize reply rates.
               </p>
             </div>
           </div>

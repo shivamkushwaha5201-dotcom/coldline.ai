@@ -1,5 +1,5 @@
 import React from "react";
-import { Link2, Sliders, Zap, ExternalLink, Key, CheckCircle2 } from "lucide-react";
+import { Link2, Sparkles, Zap, ExternalLink, Key } from "lucide-react";
 
 interface HowToUseProps {
   onOpenApiKeyModal?: () => void;
@@ -9,24 +9,24 @@ export const HowToUse: React.FC<HowToUseProps> = ({ onOpenApiKeyModal }) => {
   const steps = [
     {
       stepNumber: "01",
-      title: "Paste Prospect Info",
-      description: "Enter your prospect's website URL, LinkedIn post, or company bio.",
+      title: "Target Company or Founder",
+      description: "Enter the prospect's website URL, LinkedIn bio, or recent announcement text.",
       icon: Link2,
       accentColor: "text-indigo-400",
       bgBadge: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
     },
     {
       stepNumber: "02",
-      title: "Choose Tone & Key",
-      description: "Select your preferred tone (Casual, Direct, Professional) and ensure your Gemini API key is active.",
-      icon: Sliders,
+      title: "Your Pitch Perspective",
+      description: "Describe what you offer and your goal (e.g., short-form video editor, Next.js dev, B2B sales).",
+      icon: Sparkles,
       accentColor: "text-purple-400",
       bgBadge: "bg-purple-500/10 text-purple-400 border-purple-500/20",
     },
     {
       stepNumber: "03",
-      title: "Generate & Copy",
-      description: "Click 'Generate Icebreakers' to instantly get 3 personalized email opening lines ready to copy.",
+      title: "Generate Tailored Hooks",
+      description: "Instantly receive 3 personalized hooks: Observation, Direct Pitch, and Soft Inquiry ready to copy.",
       icon: Zap,
       accentColor: "text-emerald-400",
       bgBadge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",

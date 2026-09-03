@@ -1,15 +1,13 @@
 import React, { useState } from "react";
-import { Globe, FileText, Sparkles, ArrowRight, Loader2, Compass, Key, Eye, EyeOff, ExternalLink, Target, Briefcase, UserCheck, TrendingUp, Lightbulb } from "lucide-react";
-import { ToneOption, OutreachGoal } from "../types";
-import { TONE_OPTIONS, SAMPLE_PRESETS, OUTREACH_GOALS } from "../data/constants";
+import { Globe, FileText, Sparkles, ArrowRight, Loader2, Compass, Key, Eye, EyeOff, ExternalLink, User, MessageSquare } from "lucide-react";
+import { ToneOption } from "../types";
+import { TONE_OPTIONS, SAMPLE_PRESETS, SUGGESTED_PERSPECTIVES } from "../data/constants";
 
 interface HeroInputProps {
   input: string;
   setInput: (value: string) => void;
-  goal: OutreachGoal;
-  setGoal: (goal: OutreachGoal) => void;
-  offer: string;
-  setOffer: (offer: string) => void;
+  userPerspective: string;
+  setUserPerspective: (value: string) => void;
   tone: ToneOption;
   setTone: (tone: ToneOption) => void;
   apiKey: string;
@@ -22,10 +20,8 @@ interface HeroInputProps {
 export const HeroInput: React.FC<HeroInputProps> = ({
   input,
   setInput,
-  goal,
-  setGoal,
-  offer,
-  setOffer,
+  userPerspective,
+  setUserPerspective,
   tone,
   setTone,
   apiKey,
@@ -37,34 +33,19 @@ export const HeroInput: React.FC<HeroInputProps> = ({
   const [showApiKey, setShowApiKey] = useState(false);
   const [showApiKeyField, setShowApiKeyField] = useState(false);
 
-  // Auto-detect if input is a URL or text bio
+  // Auto-detect if target input is a URL or text bio
   const isUrl = /^https?:\/\//i.test(input.trim()) || /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(input.trim());
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
-      if (!isLoading && input.trim()) {
+      if (!isLoading && input.trim() && userPerspective.trim()) {
         onGenerate();
       }
     }
   };
 
   const currentToneMeta = TONE_OPTIONS.find((t) => t.id === tone) || TONE_OPTIONS[0];
-  const currentGoalMeta = OUTREACH_GOALS.find((g) => g.id === goal) || OUTREACH_GOALS[0];
-
-  const getGoalIcon = (id: OutreachGoal) => {
-    switch (id) {
-      case "Freelance / Service Pitch":
-        return <Briefcase className="w-3.5 h-3.5 text-indigo-400" />;
-      case "Job Seeking / Career Outreach":
-        return <UserCheck className="w-3.5 h-3.5 text-emerald-400" />;
-      case "B2B Sales Pitch":
-        return <TrendingUp className="w-3.5 h-3.5 text-purple-400" />;
-      case "Custom Offer / Other":
-      default:
-        return <Lightbulb className="w-3.5 h-3.5 text-amber-400" />;
-    }
-  };
 
   return (
     <section className="w-full max-w-3xl mx-auto pt-8 pb-8 px-4 overflow-visible">
@@ -74,7 +55,7 @@ export const HeroInput: React.FC<HeroInputProps> = ({
           <span className="flex h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
           <span>Cold Outreach Intelligence</span>
           <span className="text-zinc-600">/</span>
-          <span className="text-indigo-400">Goal-Based Pitch Personalizer</span>
+          <span className="text-indigo-400">Contextual Pitch Personalizer</span>
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.15] font-sans">
@@ -82,7 +63,7 @@ export const HeroInput: React.FC<HeroInputProps> = ({
         </h1>
 
         <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto font-normal leading-relaxed">
-          Select your outreach goal, specify what you offer, and transform any company domain or founder bio into 3 tailored opening hooks designed to maximize reply rates.
+          Provide your unique background, service, or goal alongside any target founder or company to craft 3 personalized opening hooks that command attention.
         </p>
       </div>
 
@@ -101,8 +82,9 @@ export const HeroInput: React.FC<HeroInputProps> = ({
               onClick={() => {
                 setInput(preset.url);
                 setTone(preset.tone);
-                if (preset.goal) setGoal(preset.goal);
-                if (preset.offer) setOffer(preset.offer);
+                if (preset.userPerspective) {
+                  setUserPerspective(preset.userPerspective);
+                }
               }}
               className="text-xs px-2.5 py-1 rounded-lg bg-zinc-800/70 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/50 hover:border-indigo-500/40 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
@@ -121,187 +103,68 @@ export const HeroInput: React.FC<HeroInputProps> = ({
           }}
           className="space-y-5"
         >
-          {/* Target Prospect Input Field */}
+          {/* Field 1: Target Company / Founder Link or Info */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label htmlFor="prospectInput" className="text-xs font-semibold text-zinc-300 tracking-wide uppercase flex items-center gap-1.5">
+              <label htmlFor="targetDataInput" className="text-xs font-semibold text-zinc-300 tracking-wide uppercase flex items-center gap-1.5">
                 {isUrl ? <Globe className="w-3.5 h-3.5 text-indigo-400" /> : <FileText className="w-3.5 h-3.5 text-indigo-400" />}
-                Target Prospect URL or Company / Founder Bio
+                Target Company / Founder Link or Info
               </label>
               <span className="text-[11px] text-zinc-400 font-mono">
-                {input.length > 0 ? `${input.length} chars` : "Press ⌘+Enter to run"}
+                {input.length > 0 ? `${input.length} chars` : "URL or Company Bio"}
               </span>
             </div>
 
             <div className="relative">
               <textarea
-                id="prospectInput"
-                rows={3}
+                id="targetDataInput"
+                rows={2}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="e.g. linear.app or 'Founder building an early-stage SaaS workflow tool for engineering teams...'"
-                className="w-full rounded-xl bg-zinc-950/90 border border-zinc-800 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-sans resize-y min-h-[85px]"
+                placeholder="e.g., linear.app or 'Founder building an early-stage SaaS workflow tool for engineering teams...'"
+                className="w-full rounded-xl bg-zinc-950/90 border border-zinc-800 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-sans resize-y min-h-[75px]"
               />
             </div>
           </div>
 
-          {/* NEW FEATURE: Outreach Goal / My Role Selector */}
+          {/* Field 2: Prominent Flexible User Perspective Field */}
           <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-zinc-300 tracking-wide uppercase flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5 text-indigo-400" />
-                Outreach Goal / My Role
+              <label htmlFor="userPerspectiveInput" className="text-xs font-semibold text-zinc-300 tracking-wide uppercase flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                Your Pitch Perspective & Context
               </label>
               <span className="text-[11px] text-zinc-400 font-mono">
-                {currentGoalMeta.badge}
+                {userPerspective.length > 0 ? `${userPerspective.length} chars` : "Press ⌘+Enter to generate"}
               </span>
             </div>
 
-            {/* Segmented Radio Options Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {OUTREACH_GOALS.map((g) => {
-                const isSelected = goal === g.id;
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => {
-                      setGoal(g.id);
-                      if (!offer || offer === currentGoalMeta.defaultOffer) {
-                        setOffer(g.defaultOffer);
-                      }
-                    }}
-                    className={`text-left p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? "bg-indigo-950/40 border-indigo-500/80 ring-1 ring-indigo-500/30 shadow-md shadow-indigo-950/40"
-                        : "bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60 text-zinc-300"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <div className="flex items-center gap-2">
-                        {getGoalIcon(g.id)}
-                        <span className={`text-xs font-semibold ${isSelected ? "text-white" : "text-zinc-200"}`}>
-                          {g.label.split(" (")[0]}
-                        </span>
-                      </div>
-                      <span
-                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          isSelected ? "bg-indigo-400 ring-2 ring-indigo-400/30" : "bg-zinc-700"
-                        }`}
-                      />
-                    </div>
-                    <p className="text-[11px] text-zinc-400 leading-snug">
-                      {g.exampleRole}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* NEW FEATURE: My Value Proposition / What I Offer */}
-          <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between">
-              <label htmlFor="valuePropositionInput" className="text-xs font-semibold text-zinc-300 tracking-wide uppercase flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                My Value Proposition / What I Offer
-              </label>
-              <button
-                type="button"
-                onClick={() => setOffer(currentGoalMeta.defaultOffer)}
-                className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium cursor-pointer"
-              >
-                Use suggested example
-              </button>
-            </div>
-
             <div className="relative">
-              <input
-                id="valuePropositionInput"
-                type="text"
-                value={offer}
-                onChange={(e) => setOffer(e.target.value)}
-                placeholder="e.g. I manage social media channels to grow organic engagement or I build fast Next.js UI components"
-                className="w-full rounded-xl bg-zinc-950/90 border border-zinc-800 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-sans"
+              <textarea
+                id="userPerspectiveInput"
+                rows={3}
+                value={userPerspective}
+                onChange={(e) => setUserPerspective(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="e.g., I'm a short-form video editor and I want to pitch them on re-editing their podcast clips for TikTok and Reels to boost engagement."
+                className="w-full rounded-xl bg-zinc-950/90 border border-zinc-800 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-sans resize-y min-h-[90px]"
               />
             </div>
 
-            {/* Quick-fill suggestions based on selected goal */}
+            {/* Quick perspective suggestion chips */}
             <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-              <span className="text-[10px] text-zinc-500 font-mono">Quick fill:</span>
-              {goal === "Freelance / Service Pitch" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setOffer("I help tech brands repurpose product updates into high-performing short video posts")}
-                    className="text-[11px] px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/50 cursor-pointer"
-                  >
-                    Short video posts
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOffer("I design high-converting landing pages and design systems in Figma")}
-                    className="text-[11px] px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/50 cursor-pointer"
-                  >
-                    Figma design systems
-                  </button>
-                </>
-              )}
-              {goal === "Job Seeking / Career Outreach" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setOffer("As a Next.js dev who builds fast UI components, looking for early-stage teams building slick dev tools")}
-                    className="text-[11px] px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/50 cursor-pointer"
-                  >
-                    Next.js Dev (SaaS)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOffer("Product engineer with deep experience in React, TypeScript, and full-stack API integrations")}
-                    className="text-[11px] px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/50 cursor-pointer"
-                  >
-                    Full-Stack Engineer
-                  </button>
-                </>
-              )}
-              {goal === "B2B Sales Pitch" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setOffer("We build automated outbound workflows that increase booked demos by 30% without manual prospecting")}
-                    className="text-[11px] px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/50 cursor-pointer"
-                  >
-                    Outbound automation (+30% demos)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOffer("We help engineering teams automate SOC2 compliance monitoring and audit prep in under 2 weeks")}
-                    className="text-[11px] px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/50 cursor-pointer"
-                  >
-                    Compliance automation
-                  </button>
-                </>
-              )}
-              {goal === "Custom Offer / Other" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setOffer("I create hands-on technical architecture tutorials and case studies for developer tool communities")}
-                    className="text-[11px] px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/50 cursor-pointer"
-                  >
-                    Technical tutorial & case study
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOffer("I'd love to invite you onto our podcast to discuss your roadmap and product strategy")}
-                    className="text-[11px] px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/50 cursor-pointer"
-                  >
-                    Podcast invitation
-                  </button>
-                </>
-              )}
+              <span className="text-[10px] text-zinc-500 font-mono">Try perspective:</span>
+              {SUGGESTED_PERSPECTIVES.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => setUserPerspective(item.text)}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-zinc-950/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 hover:border-indigo-500/40 transition-colors cursor-pointer"
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -438,7 +301,7 @@ export const HeroInput: React.FC<HeroInputProps> = ({
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Analyzing Target & Pitching...</span>
+                    <span>Analyzing Target & Context...</span>
                   </>
                 ) : (
                   <>

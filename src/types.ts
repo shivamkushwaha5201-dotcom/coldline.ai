@@ -1,20 +1,5 @@
 export type ToneOption = "Casual" | "Professional" | "Direct" | "Witty";
 
-export type OutreachGoal =
-  | "Freelance / Service Pitch"
-  | "Job Seeking / Career Outreach"
-  | "B2B Sales Pitch"
-  | "Custom Offer / Other";
-
-export interface OutreachGoalMeta {
-  id: OutreachGoal;
-  label: string;
-  badge: string;
-  exampleRole: string;
-  defaultOffer: string;
-  description: string;
-}
-
 export interface ToneMeta {
   id: ToneOption;
   label: string;
@@ -41,8 +26,7 @@ export interface GenerationResponse {
   pitches?: PitchOption[];
   tone?: string;
   normalizedInput?: string;
-  goal?: OutreachGoal;
-  offer?: string;
+  userPerspective?: string;
   error?: string;
 }
 
@@ -51,6 +35,5 @@ export interface SamplePreset {
   url: string;
   tagline: string;
   tone: ToneOption;
-  goal?: OutreachGoal;
-  offer?: string;
+  userPerspective?: string;
 }

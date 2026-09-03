@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Copy, Check, RotateCw, Sparkles, MessageSquareText, Layers, Loader2, Eye, Zap, MessageCircle, Target, Briefcase } from "lucide-react";
-import { ToneOption, PitchOption, OutreachGoal } from "../types";
+import { Copy, Check, RotateCw, Sparkles, MessageSquareText, Layers, Loader2, Eye, Zap, MessageCircle, User } from "lucide-react";
+import { ToneOption, PitchOption } from "../types";
 import { HOOK_TYPES, TONE_OPTIONS } from "../data/constants";
 
 interface OutputSectionProps {
   pitches?: PitchOption[];
   icebreakers?: string[];
   tone: ToneOption;
-  goal?: OutreachGoal;
-  offer?: string;
+  userPerspective?: string;
   isLoading: boolean;
   onRegenerate: () => void;
   onChangeTone: (newTone: ToneOption) => void;
@@ -17,7 +16,7 @@ interface OutputSectionProps {
 
 const LOADING_STEPS = [
   "Scanning target prospect positioning & product signals...",
-  "Identifying pain points & relevance to your outreach goal...",
+  "Analyzing your pitch perspective & context against target pain points...",
   "Synthesizing 3 tailored hooks (Observation, Direct Pitch, Soft Inquiry)...",
 ];
 
@@ -25,8 +24,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
   pitches = [],
   icebreakers = [],
   tone,
-  goal,
-  offer,
+  userPerspective,
   isLoading,
   onRegenerate,
   onChangeTone,
@@ -120,10 +118,13 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
           <h2 className="text-base font-bold text-white font-sans">
             Personalized Pitch Options <span className="text-zinc-400 font-normal font-mono text-xs">({displayPitches.length || 3})</span>
           </h2>
-          {goal && (
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300 font-medium border border-zinc-700/60 flex items-center gap-1.5">
-              <Target className="w-3 h-3 text-indigo-400" />
-              {goal.split(" (")[0]}
+          {userPerspective && (
+            <span
+              className="text-xs px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300 font-medium border border-zinc-700/60 flex items-center gap-1.5 max-w-[200px] truncate"
+              title={userPerspective}
+            >
+              <User className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+              <span className="truncate">{userPerspective}</span>
             </span>
           )}
           <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-medium border border-zinc-700/60">
@@ -181,7 +182,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                      Gemini 2.5 Flash Engine
+                      Gemini Outreach Intelligence
                     </span>
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                       Analyzing
@@ -215,34 +216,36 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="relative overflow-hidden rounded-2xl bg-zinc-900/60 border border-zinc-800/80 p-5 sm:p-6 space-y-3.5"
+              className="rounded-2xl bg-zinc-900/60 border border-zinc-800/80 p-5 space-y-3.5 animate-pulse"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-5 w-7 bg-zinc-800 rounded-md animate-pulse" />
-                  <div className="h-4 w-36 bg-zinc-800 rounded-md animate-pulse" />
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 bg-zinc-800 rounded" />
+                  <div className="h-5 w-32 bg-zinc-800 rounded-lg" />
+                  <div className="h-4 w-48 bg-zinc-800/60 rounded hidden md:block" />
                 </div>
-                <div className="h-7 w-20 bg-zinc-800 rounded-lg animate-pulse" />
+                <div className="h-8 w-24 bg-zinc-800 rounded-lg" />
               </div>
-
-              {/* Shimmering Text Lines */}
-              <div className="bg-zinc-950/70 rounded-xl p-4 border border-zinc-850 space-y-2.5">
-                <div className="h-4 w-full bg-zinc-800/90 rounded-md animate-pulse" />
-                <div className="h-4 w-5/6 bg-zinc-800/70 rounded-md animate-pulse" />
-                <div className="h-4 w-3/5 bg-zinc-800/50 rounded-md animate-pulse" />
+              <div className="h-16 bg-zinc-950/80 rounded-xl border border-zinc-800/50 p-4 space-y-2">
+                <div className="h-3.5 bg-zinc-800 rounded w-11/12" />
+                <div className="h-3.5 bg-zinc-800/70 rounded w-4/5" />
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <div className="h-4 w-40 bg-zinc-800/50 rounded" />
+                <div className="h-3 w-16 bg-zinc-800/40 rounded" />
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Generated Pitch Cards */}
+      {/* Generated Pitch Options Cards */}
       {!isLoading && displayPitches.length > 0 && (
         <div className="space-y-4">
           {displayPitches.map((item, index) => {
             const hookStyle = getHookBadgeStyles(item.hookType);
             const isCopied = copiedIndex === index;
-            const wordCount = item.pitch.split(/\s+/).filter(Boolean).length;
+            const wordCount = item.pitch.trim().split(/\s+/).length;
 
             return (
               <div
@@ -328,7 +331,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          const fullEmail = `Hi [First Name],\n\n${item.pitch}\n\n${offer ? `${offer}\n\n` : ""}Would you be open to a brief 5-minute chat or seeing a quick concept?\n\nBest,\n[Your Name]`;
+                          const fullEmail = `Hi [First Name],\n\n${item.pitch}\n\nWould you be open to a brief 5-minute chat or seeing a quick concept?\n\nBest,\n[Your Name]`;
                           navigator.clipboard.writeText(fullEmail);
                           setCopiedIndex(index);
                           setTimeout(() => setCopiedIndex(null), 2000);
@@ -342,11 +345,6 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
                     <div className="text-indigo-200 bg-indigo-950/30 p-3 rounded-lg border border-indigo-500/20 font-sans text-sm leading-relaxed">
                       {item.pitch}
                     </div>
-                    {offer && (
-                      <div className="text-zinc-300 bg-zinc-900/50 p-2.5 rounded border border-zinc-800 font-sans text-xs">
-                        {offer}
-                      </div>
-                    )}
                     <div className="text-zinc-400">Would you be open to a brief 5-minute chat or seeing a quick concept?</div>
                     <div className="text-zinc-400">Best, <br />[Your Name]</div>
                   </div>

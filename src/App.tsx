@@ -5,9 +5,8 @@ import { HeroInput } from "./components/HeroInput";
 import { HowToUse } from "./components/HowToUse";
 import { OutputSection } from "./components/OutputSection";
 import { ApiKeyModal } from "./components/ApiKeyModal";
-import { ToneOption, OutreachGoal, PitchOption } from "./types";
+import { ToneOption, PitchOption } from "./types";
 import { buildPrompt, parsePitchOptions } from "./services/gemini";
-import { OUTREACH_GOALS } from "./data/constants";
 
 // WARNING: Client-side Gemini API call requested by user. Exposing API keys in client-side code is acceptable when explicitly requested with client-provided keys.
 
@@ -15,9 +14,8 @@ const DEFAULT_KEY = "AQ.Ab8RN6L5QDp0kDnz4wAuLimYkPEWNUy_xh0v70fa-uHRIgqtog";
 
 export default function App() {
   const [input, setInput] = useState<string>("linear.app");
-  const [goal, setGoal] = useState<OutreachGoal>("Freelance / Service Pitch");
-  const [offer, setOffer] = useState<string>(
-    "I help tech brands repurpose product updates into high-performing short video posts and organic content."
+  const [userPerspective, setUserPerspective] = useState<string>(
+    "I'm a short-form video editor and I want to pitch them on re-editing their podcast clips for TikTok and Reels to boost engagement."
   );
   const [tone, setTone] = useState<ToneOption>("Casual");
   const [apiKey, setApiKey] = useState<string>(() => {
@@ -68,6 +66,11 @@ export default function App() {
       return;
     }
 
+    if (!userPerspective.trim()) {
+      setErrorMessage("Please enter your pitch perspective and context.");
+      return;
+    }
+
     const effectiveKey = apiKey.trim() || (typeof window !== "undefined" ? localStorage.getItem("coldline_gemini_api_key") || "" : "");
     if (!effectiveKey) {
       setErrorMessage("Please configure your Gemini API Key in Settings or the input box to generate pitches.");
@@ -81,9 +84,8 @@ export default function App() {
       // Direct client-side SDK call using @google/generative-ai
       const genAI = new GoogleGenerativeAI(effectiveKey);
       const prompt = buildPrompt({
-        input: input.trim(),
-        goal,
-        offer,
+        targetData: input.trim(),
+        userPerspective: userPerspective.trim(),
         tone: activeTone,
       });
 
@@ -166,10 +168,8 @@ export default function App() {
         <HeroInput
           input={input}
           setInput={setInput}
-          goal={goal}
-          setGoal={setGoal}
-          offer={offer}
-          setOffer={setOffer}
+          userPerspective={userPerspective}
+          setUserPerspective={setUserPerspective}
           tone={tone}
           setTone={setTone}
           apiKey={apiKey}
@@ -184,8 +184,7 @@ export default function App() {
           pitches={pitches}
           icebreakers={icebreakers}
           tone={tone}
-          goal={goal}
-          offer={offer}
+          userPerspective={userPerspective}
           isLoading={isLoading}
           onRegenerate={() => handleGenerate()}
           onChangeTone={handleChangeToneAndRegenerate}

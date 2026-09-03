@@ -1,6 +1,6 @@
 {
   "name": "ColdLine AI",
-  "description": "Generate personalized goal-based cold outreach pitches and icebreakers in seconds using AI.",
+  "description": "Generate personalized cold outreach pitches and bridge hooks tailored to your perspective using AI.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

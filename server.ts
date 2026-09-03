@@ -220,14 +220,22 @@ async function startServer() {
     res.sendStatus(204);
   });
 
-  // Icebreaker generation endpoint
+  // Icebreaker & Pitch generation endpoint
   app.post("/api/generate", async (req, res) => {
     try {
-      const { input, tone = "Professional" } = req.body || {};
+      const {
+        input,
+        targetData,
+        userPerspective,
+        tone = "Professional",
+      } = req.body || {};
 
-      if (!input || typeof input !== "string" || !input.trim()) {
+      const rawTarget = (targetData || input || "").toString();
+      const rawPerspective = (userPerspective || "").toString();
+
+      if (!rawTarget.trim()) {
         res.status(400).json({
-          error: "Please provide a valid prospect website URL or company description.",
+          error: "Please provide a valid target prospect website URL or company description.",
         });
         return;
       }
@@ -245,7 +253,7 @@ async function startServer() {
         return;
       }
 
-      const urlInfo = extractCompanyAndUrlDetails(input);
+      const urlInfo = extractCompanyAndUrlDetails(rawTarget);
 
       const ai = new GoogleGenAI({
         apiKey,
@@ -256,40 +264,34 @@ async function startServer() {
         },
       });
 
-      const systemPrompt = `You are a world-class B2B cold email copywriter and outbound sales strategist.
-Analyze the provided prospect input (which may be a website URL, domain name, company description, or bio).
-Return EXACTLY a valid JSON array containing 3 distinct, punchy, hyper-relevant cold email opening lines (icebreakers) tailored to this specific company or prospect.
+      const effectivePerspective =
+        rawPerspective.trim() ||
+        "I provide specialized high-impact services and help tech teams scale.";
 
-Guidelines for icebreakers:
-1. Length: 1 to 2 sentences max per icebreaker.
-2. Relevance: Reference specific value propositions, pain points, company milestones, or offerings inferred from the input.
-3. Tone: Adhere strictly to the requested tone: "${tone}".
-   - Casual: Friendly, peer-to-peer, relaxed, no stiff corporate buzzwords.
-   - Professional: Respectful, articulate, credible, consultative.
-   - Direct: Straight to the point, metric or problem-oriented, no fluff.
-   - Witty: Clever, refreshing, observant, memorable without being unprofessional.
-4. Natural delivery: Avoid cheesy lines like "I stumbled upon your website and was blown away". Make it sound like a real person who did thoughtful research.
-5. Important URL / Fallback Handling:
-   ${
-     urlInfo.isUrl
-       ? `The user provided a website URL (${urlInfo.cleanUrl}) for "${urlInfo.companyName || urlInfo.cleanUrl}". You must NOT refuse or say you cannot browse URLs. Infer the company's business model, industry, and core strengths from its domain and known presence, and craft tailored icebreakers.`
-       : "Analyze the provided company description and extract relevant value hooks."
-   }
-6. Format: Return ONLY a JSON array of 3 string items, e.g. ["line 1", "line 2", "line 3"]. Never wrap in explanation text or disclaimers.`;
+      const systemPrompt = `You are an expert cold outreach strategist. Read the target founder/company details (${rawTarget.trim()}) and the user's specific background and goal (${effectivePerspective}). Generate 3 highly personalized, high-converting cold outreach hooks that directly bridge the user's offered value to the target's specific business context.
 
-      const userPrompt = urlInfo.isUrl
-        ? `Prospect Website: ${urlInfo.cleanUrl}
-Identified Company / Brand: ${urlInfo.companyName || urlInfo.cleanUrl}
+Guidelines:
+1. Generate 3 distinct hooks:
+   - "Observation Hook": Highlighting something specific about their recent posts/company work.
+   - "Direct Pitch Hook": Directly connecting user's service/skill to a problem the company might be facing.
+   - "Soft Inquiry Hook": A low-friction opening question to start a conversation.
+2. Tone requested: "${tone}".
+3. Natural delivery: Sound authentic, consultative, and concise without corporate buzzword fluff.
+4. Format: Return ONLY a valid JSON array of 3 strings (the 3 pitch hooks), e.g. ["hook 1", "hook 2", "hook 3"].`;
+
+      const userPrompt = `Target founder/company details:
+"""
+${rawTarget.trim()}
+"""
+
+User's specific background and goal:
+"""
+${effectivePerspective}
+"""
+
 Tone requested: ${tone}
 
-Generate 3 high-converting cold email opening icebreakers for this company now as a JSON array.`
-        : `Prospect / Company Bio:
-"""
-${urlInfo.cleanUrl}
-"""
-Tone requested: ${tone}
-
-Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
+Generate the 3 tailored cold outreach hooks as a JSON array now.`;
 
       const candidateModels = [
         "gemini-3.5-flash",
@@ -354,7 +356,7 @@ Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
           }
         }
         // Graceful fallback icebreakers based on provided domain/text
-        icebreakers = generateFallbackIcebreakers(input, tone, urlInfo.companyName);
+        icebreakers = generateFallbackIcebreakers(rawTarget, tone, urlInfo.companyName);
       }
 
       const result = icebreakers.slice(0, 3);
@@ -362,6 +364,7 @@ Generate 3 high-converting cold email opening icebreakers now as a JSON array.`;
       res.json({
         success: true,
         icebreakers: result,
+        userPerspective: rawPerspective,
         tone,
         normalizedInput: urlInfo.cleanUrl,
       });

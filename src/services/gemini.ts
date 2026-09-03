@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { OutreachGoal, PitchOption, ToneOption } from "../types";
+import { PitchOption, ToneOption } from "../types";
 import { HOOK_TYPES } from "../data/constants";
 
 // WARNING: Client-side Gemini API call requested by user. Exposing API keys in client-side code is acceptable when explicitly requested with client-provided keys.
@@ -8,18 +8,17 @@ export const GEMINI_MODEL = "gemini-1.5-flash";
 export const GEMINI_FALLBACK_MODEL = "gemini-3.5-flash";
 
 export interface GeneratePitchesParams {
-  input: string;
-  goal: OutreachGoal;
-  offer: string;
+  targetData: string;
+  userPerspective: string;
   tone: ToneOption;
   apiKey?: string;
+  input?: string; // fallback alias
 }
 
 export interface GeneratePitchesResult {
   pitches: PitchOption[];
   icebreakers: string[]; // for backward compatibility
-  goal: OutreachGoal;
-  offer: string;
+  userPerspective: string;
   tone: ToneOption;
   normalizedInput: string;
 }
@@ -105,41 +104,36 @@ export function parsePitchOptions(rawText: string): PitchOption[] {
 }
 
 /**
- * Builds the AI prompt tailored for Goal-Based Outreach & Pitch Personalization
+ * Builds the AI prompt tailored for Target Info and User Pitch Perspective
  */
 export function buildPrompt(params: {
-  input: string;
-  goal: OutreachGoal;
-  offer: string;
-  tone: ToneOption;
+  targetData: string;
+  userPerspective: string;
+  tone?: ToneOption;
 }): string {
-  return `You are a world-class cold outreach copywriter, sales strategist, and pitch personalizer.
-You are helping an outreach sender craft tailored opening pitches to reach out to a target company or founder.
+  const target = params.targetData.trim();
+  const perspective = params.userPerspective.trim();
 
-Target Prospect URL / Company Bio:
-"${params.input.trim()}"
+  return `You are an expert cold outreach strategist. Read the target founder/company details (${target}) and the user's specific background and goal (${perspective}). Generate 3 highly personalized, high-converting cold outreach hooks that directly bridge the user's offered value to the target's specific business context.
 
-User's Outreach Goal / Role:
-"${params.goal}"
+Target Founder / Company Details:
+"${target}"
 
-User's Value Proposition / What They Offer:
-"${params.offer.trim() || "Specialized professional assistance tailored to high-growth teams."}"
+User's Specific Background and Goal (Pitch Perspective & Context):
+"${perspective}"
 
-Tone of Voice:
-"${params.tone}"
+${params.tone ? `Tone of Voice: ${params.tone}\n` : ""}
 
-TASK:
-Analyze the target founder/company's product, positioning, or recent presence. Identify a specific, realistic pain point or operational/growth gap related to the user's outreach goal.
-Then generate exactly 3 custom pitch options:
+Generate exactly 3 custom pitch options:
 1. "Observation Hook": Highlighting something specific about their recent posts, product releases, design patterns, or company work.
 2. "Direct Pitch Hook": Directly connecting user's service/skill/solution to a concrete problem or bottleneck the company might be facing.
 3. "Soft Inquiry Hook": A low-friction, high-curiosity opening question to start an effortless peer conversation.
 
 EXAMPLES OF DESIRED QUALITY:
-- Freelancer pitch to Linear (Role: Social Media Manager, Offer: repurpose updates into short videos):
+- Video Editor pitch to Linear (Perspective: I'm a short-form video editor and I want to pitch them on re-editing their podcast clips for TikTok and Reels to boost engagement):
   "Noticed Linear's Twitter design teasers get crazy reach, but the video walkthroughs could double conversions on LinkedIn. I help tech brands repurpose product updates into high-performing short video posts—would you be open to seeing 2 quick video concepts I drafted for Linear?"
-- Job Seeker pitch to SaaS Founder (Role: Full-Stack Dev, Offer: Next.js dev building fast UI):
-  "Loved the new workflow feature you shipped last week. As a Next.js dev who builds fast UI components, I’m actively looking for early-stage teams building slick developer tools. Are you currently hiring or open to contract help on your frontend roadmap?"
+- Next.js Dev pitch to SaaS Founder (Perspective: I'm a Next.js full-stack developer who builds fast UI components. I want to reach out about contract frontend help on their roadmap):
+  "Loved the new workflow feature you shipped last week. As a Next.js dev who builds fast UI components, I'm actively looking for early-stage teams building slick developer tools. Are you currently hiring or open to contract help on your frontend roadmap?"
 
 OUTPUT FORMAT:
 Return strictly a valid JSON array of 3 objects with keys "hookType", "tagline", and "pitch".
@@ -176,10 +170,10 @@ export async function generatePitches(
   }
 
   const genAI = new GoogleGenerativeAI(key);
+  const targetData = params.targetData || params.input || "";
   const prompt = buildPrompt({
-    input: params.input,
-    goal: params.goal,
-    offer: params.offer,
+    targetData,
+    userPerspective: params.userPerspective,
     tone: params.tone,
   });
 
@@ -210,15 +204,14 @@ export async function generatePitches(
     throw new Error("Unable to parse generated pitch options from Gemini response.");
   }
 
-  const normalizedInput = /^https?:\/\//i.test(params.input.trim())
-    ? params.input.trim()
-    : "https://" + params.input.trim();
+  const normalizedInput = /^https?:\/\//i.test(targetData.trim())
+    ? targetData.trim()
+    : "https://" + targetData.trim();
 
   return {
     pitches,
     icebreakers: pitches.map((p) => p.pitch),
-    goal: params.goal,
-    offer: params.offer,
+    userPerspective: params.userPerspective,
     tone: params.tone,
     normalizedInput,
   };
@@ -231,9 +224,8 @@ export async function generateIcebreakers(params: {
   apiKey?: string;
 }) {
   const result = await generatePitches({
-    input: params.input,
-    goal: "Freelance / Service Pitch",
-    offer: "I help tech companies scale organic outreach and engagement.",
+    targetData: params.input,
+    userPerspective: "I help tech companies scale organic outreach and engagement.",
     tone: (params.tone as ToneOption) || "Professional",
     apiKey: params.apiKey,
   });
