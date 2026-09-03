@@ -5,6 +5,7 @@ import { HeroInput } from "./components/HeroInput";
 import { HowToUse } from "./components/HowToUse";
 import { OutputSection } from "./components/OutputSection";
 import { ApiKeyModal } from "./components/ApiKeyModal";
+import { Footer } from "./components/Footer";
 import { ToneOption, PitchOption } from "./types";
 import { buildPrompt, parsePitchOptions } from "./services/gemini";
 
@@ -196,26 +197,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-900 bg-zinc-950/80 py-8 text-center text-xs text-zinc-400 relative z-10">
-        <div className="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-zinc-400">ColdLine AI</span>
-            <span>—</span>
-            <span>Micro-SaaS Cold Email & Pitch Personalizer</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setIsApiKeyModalOpen(true)}
-              className="text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
-            >
-              Configure API Key
-            </button>
-            <span>•</span>
-            <span className="font-mono text-zinc-400">Gemini 2.5 Flash</span>
-          </div>
-        </div>
-      </footer>
+      <Footer onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)} />
 
       {/* API Key Modal */}
       <ApiKeyModal
