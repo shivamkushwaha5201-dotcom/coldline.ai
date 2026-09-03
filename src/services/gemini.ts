@@ -1,70 +1,187 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { OutreachGoal, PitchOption, ToneOption } from "../types";
+import { HOOK_TYPES } from "../data/constants";
 
 // WARNING: Client-side Gemini API call requested by user. Exposing API keys in client-side code is acceptable when explicitly requested with client-provided keys.
 
 export const GEMINI_MODEL = "gemini-1.5-flash";
 export const GEMINI_FALLBACK_MODEL = "gemini-3.5-flash";
 
-export interface GenerateIcebreakersParams {
+export interface GeneratePitchesParams {
   input: string;
-  tone: string;
+  goal: OutreachGoal;
+  offer: string;
+  tone: ToneOption;
   apiKey?: string;
 }
 
-export interface GenerateIcebreakersResult {
-  icebreakers: string[];
-  tone: string;
+export interface GeneratePitchesResult {
+  pitches: PitchOption[];
+  icebreakers: string[]; // for backward compatibility
+  goal: OutreachGoal;
+  offer: string;
+  tone: ToneOption;
   normalizedInput: string;
 }
 
-function parseIcebreakers(rawText: string): string[] {
+export function parsePitchOptions(rawText: string): PitchOption[] {
+  const defaultHooks = [
+    {
+      hookType: "Observation Hook",
+      tagline: "Highlighting something specific about their recent posts/company work",
+    },
+    {
+      hookType: "Direct Pitch Hook",
+      tagline: "Directly connecting user's service/skill to a problem the company might be facing",
+    },
+    {
+      hookType: "Soft Inquiry Hook",
+      tagline: "A low-friction opening question to start a conversation",
+    },
+  ];
+
   try {
     const cleaned = rawText.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
+
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.map((item) => String(item).trim()).filter(Boolean);
+      return parsed.map((item, idx) => {
+        const fallback = defaultHooks[idx % defaultHooks.length];
+        if (typeof item === "string") {
+          return {
+            hookType: fallback.hookType,
+            tagline: fallback.tagline,
+            pitch: item.trim(),
+          };
+        }
+        return {
+          hookType: item.hookType || item.hook_type || item.type || fallback.hookType,
+          tagline: item.tagline || fallback.tagline,
+          pitch: (item.pitch || item.text || item.content || "").trim(),
+        };
+      }).filter((p) => p.pitch.length > 0);
     }
   } catch {
+    // Try regex extraction of JSON array
     const match = rawText.match(/\[[\s\S]*\]/);
     if (match) {
       try {
         const parsed = JSON.parse(match[0]);
-        if (Array.isArray(parsed)) {
-          return parsed.map((item) => String(item).trim()).filter(Boolean);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item, idx) => {
+            const fallback = defaultHooks[idx % defaultHooks.length];
+            if (typeof item === "string") {
+              return {
+                hookType: fallback.hookType,
+                tagline: fallback.tagline,
+                pitch: item.trim(),
+              };
+            }
+            return {
+              hookType: item.hookType || item.hook_type || item.type || fallback.hookType,
+              tagline: item.tagline || fallback.tagline,
+              pitch: (item.pitch || item.text || item.content || "").trim(),
+            };
+          }).filter((p) => p.pitch.length > 0);
         }
       } catch {}
     }
+
+    // Fallback: extract line by line
     const lines = rawText
       .split("\n")
       .map((l) => l.replace(/^[-*\d.)\]]+\s*/, "").replace(/^["']|["']$/g, "").trim())
-      .filter((l) => l.length > 20);
+      .filter((l) => l.length > 25);
+
     if (lines.length > 0) {
-      return lines.slice(0, 3);
+      return lines.slice(0, 3).map((line, idx) => ({
+        hookType: defaultHooks[idx % defaultHooks.length].hookType,
+        tagline: defaultHooks[idx % defaultHooks.length].tagline,
+        pitch: line,
+      }));
     }
   }
   return [];
 }
 
 /**
+ * Builds the AI prompt tailored for Goal-Based Outreach & Pitch Personalization
+ */
+export function buildPrompt(params: {
+  input: string;
+  goal: OutreachGoal;
+  offer: string;
+  tone: ToneOption;
+}): string {
+  return `You are a world-class cold outreach copywriter, sales strategist, and pitch personalizer.
+You are helping an outreach sender craft tailored opening pitches to reach out to a target company or founder.
+
+Target Prospect URL / Company Bio:
+"${params.input.trim()}"
+
+User's Outreach Goal / Role:
+"${params.goal}"
+
+User's Value Proposition / What They Offer:
+"${params.offer.trim() || "Specialized professional assistance tailored to high-growth teams."}"
+
+Tone of Voice:
+"${params.tone}"
+
+TASK:
+Analyze the target founder/company's product, positioning, or recent presence. Identify a specific, realistic pain point or operational/growth gap related to the user's outreach goal.
+Then generate exactly 3 custom pitch options:
+1. "Observation Hook": Highlighting something specific about their recent posts, product releases, design patterns, or company work.
+2. "Direct Pitch Hook": Directly connecting user's service/skill/solution to a concrete problem or bottleneck the company might be facing.
+3. "Soft Inquiry Hook": A low-friction, high-curiosity opening question to start an effortless peer conversation.
+
+EXAMPLES OF DESIRED QUALITY:
+- Freelancer pitch to Linear (Role: Social Media Manager, Offer: repurpose updates into short videos):
+  "Noticed Linear's Twitter design teasers get crazy reach, but the video walkthroughs could double conversions on LinkedIn. I help tech brands repurpose product updates into high-performing short video posts—would you be open to seeing 2 quick video concepts I drafted for Linear?"
+- Job Seeker pitch to SaaS Founder (Role: Full-Stack Dev, Offer: Next.js dev building fast UI):
+  "Loved the new workflow feature you shipped last week. As a Next.js dev who builds fast UI components, I’m actively looking for early-stage teams building slick developer tools. Are you currently hiring or open to contract help on your frontend roadmap?"
+
+OUTPUT FORMAT:
+Return strictly a valid JSON array of 3 objects with keys "hookType", "tagline", and "pitch".
+Do NOT include markdown backticks or commentary outside JSON.
+Example:
+[
+  {
+    "hookType": "Observation Hook",
+    "tagline": "Highlighting something specific about their recent posts/company work",
+    "pitch": "..."
+  },
+  {
+    "hookType": "Direct Pitch Hook",
+    "tagline": "Directly connecting user's service/skill to a problem the company might be facing",
+    "pitch": "..."
+  },
+  {
+    "hookType": "Soft Inquiry Hook",
+    "tagline": "A low-friction opening question to start a conversation",
+    "pitch": "..."
+  }
+]`;
+}
+
+/**
  * Directly calls @google/generative-ai SDK from the browser
  */
-export async function generateIcebreakers(
-  params: GenerateIcebreakersParams
-): Promise<GenerateIcebreakersResult> {
+export async function generatePitches(
+  params: GeneratePitchesParams
+): Promise<GeneratePitchesResult> {
   const key = params.apiKey || (typeof window !== "undefined" ? localStorage.getItem("coldline_gemini_api_key") || "" : "");
   if (!key) {
     throw new Error("Missing Gemini API Key. Please provide a valid Gemini API key.");
   }
 
   const genAI = new GoogleGenerativeAI(key);
-  const prompt = `You are an expert sales personalizer. Generate exactly 3 personalized cold outreach email icebreakers for:
-"${params.input.trim()}"
-
-Tone: ${params.tone}
-Rules:
-- 1 to 2 sentences each.
-- Highly relevant and non-generic.
-- Return strictly a valid JSON array of 3 strings. Example: ["Icebreaker 1", "Icebreaker 2", "Icebreaker 3"]`;
+  const prompt = buildPrompt({
+    input: params.input,
+    goal: params.goal,
+    offer: params.offer,
+    tone: params.tone,
+  });
 
   let rawText = "";
   try {
@@ -88,9 +205,9 @@ Rules:
     }
   }
 
-  const icebreakers = parseIcebreakers(rawText);
-  if (icebreakers.length === 0) {
-    throw new Error("Unable to parse icebreaker results from Gemini response.");
+  const pitches = parsePitchOptions(rawText);
+  if (pitches.length === 0) {
+    throw new Error("Unable to parse generated pitch options from Gemini response.");
   }
 
   const normalizedInput = /^https?:\/\//i.test(params.input.trim())
@@ -98,8 +215,31 @@ Rules:
     : "https://" + params.input.trim();
 
   return {
-    icebreakers,
+    pitches,
+    icebreakers: pitches.map((p) => p.pitch),
+    goal: params.goal,
+    offer: params.offer,
     tone: params.tone,
     normalizedInput,
+  };
+}
+
+// Backward compatibility alias
+export async function generateIcebreakers(params: {
+  input: string;
+  tone: string;
+  apiKey?: string;
+}) {
+  const result = await generatePitches({
+    input: params.input,
+    goal: "Freelance / Service Pitch",
+    offer: "I help tech companies scale organic outreach and engagement.",
+    tone: (params.tone as ToneOption) || "Professional",
+    apiKey: params.apiKey,
+  });
+  return {
+    icebreakers: result.icebreakers,
+    tone: result.tone,
+    normalizedInput: result.normalizedInput,
   };
 }

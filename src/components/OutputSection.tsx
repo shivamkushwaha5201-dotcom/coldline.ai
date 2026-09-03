@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Copy, Check, RotateCw, Sparkles, Send, CheckCircle2, MessageSquareText, Layers, BrainCircuit, Loader2 } from "lucide-react";
-import { ToneOption } from "../types";
+import { Copy, Check, RotateCw, Sparkles, MessageSquareText, Layers, Loader2, Eye, Zap, MessageCircle, Target, Briefcase } from "lucide-react";
+import { ToneOption, PitchOption, OutreachGoal } from "../types";
 import { HOOK_TYPES, TONE_OPTIONS } from "../data/constants";
 
 interface OutputSectionProps {
-  icebreakers: string[];
+  pitches?: PitchOption[];
+  icebreakers?: string[];
   tone: ToneOption;
+  goal?: OutreachGoal;
+  offer?: string;
   isLoading: boolean;
   onRegenerate: () => void;
   onChangeTone: (newTone: ToneOption) => void;
@@ -13,14 +16,17 @@ interface OutputSectionProps {
 }
 
 const LOADING_STEPS = [
-  "Scanning prospect context & positioning signals...",
-  "Filtering out generic buzzwords & spam phrases...",
-  "Synthesizing 3 personalized high-conversion hooks...",
+  "Scanning target prospect positioning & product signals...",
+  "Identifying pain points & relevance to your outreach goal...",
+  "Synthesizing 3 tailored hooks (Observation, Direct Pitch, Soft Inquiry)...",
 ];
 
 export const OutputSection: React.FC<OutputSectionProps> = ({
-  icebreakers,
+  pitches = [],
+  icebreakers = [],
   tone,
+  goal,
+  offer,
   isLoading,
   onRegenerate,
   onChangeTone,
@@ -30,6 +36,18 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
   const [copiedAll, setCopiedAll] = useState(false);
   const [previewTemplateIndex, setPreviewTemplateIndex] = useState<number | null>(null);
   const [activeStep, setActiveStep] = useState(0);
+
+  // Normalize pitches: use pitches if available, else derive from icebreakers
+  const displayPitches: PitchOption[] = pitches.length > 0
+    ? pitches
+    : icebreakers.map((line, idx) => {
+        const hook = HOOK_TYPES[idx % HOOK_TYPES.length];
+        return {
+          hookType: hook.label,
+          tagline: hook.tagline,
+          pitch: line,
+        };
+      });
 
   useEffect(() => {
     if (!isLoading) {
@@ -50,9 +68,9 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
     }, 2000);
   };
 
-  const copyAllIcebreakers = () => {
-    const formatted = icebreakers
-      .map((line, idx) => `[Option ${idx + 1}]:\n${line}`)
+  const copyAllPitches = () => {
+    const formatted = displayPitches
+      .map((p, idx) => `[${p.hookType} - Option ${idx + 1}]:\n${p.pitch}`)
       .join("\n\n");
     navigator.clipboard.writeText(formatted);
     setCopiedAll(true);
@@ -61,33 +79,65 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
     }, 2000);
   };
 
-  if (!isLoading && icebreakers.length === 0) {
+  const getHookBadgeStyles = (hookType: string) => {
+    const lower = hookType.toLowerCase();
+    if (lower.includes("observation")) {
+      return {
+        badge: "bg-blue-500/10 text-blue-300 border-blue-500/30",
+        indicator: "bg-blue-400",
+        icon: <Eye className="w-3.5 h-3.5 text-blue-400" />,
+        defaultTag: "Highlighting something specific about their recent work / presence",
+      };
+    }
+    if (lower.includes("direct")) {
+      return {
+        badge: "bg-purple-500/10 text-purple-300 border-purple-500/30",
+        indicator: "bg-purple-400",
+        icon: <Zap className="w-3.5 h-3.5 text-purple-400" />,
+        defaultTag: "Directly connecting your offer to a problem they might face",
+      };
+    }
+    return {
+      badge: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+      indicator: "bg-emerald-400",
+      icon: <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />,
+      defaultTag: "A low-friction opening question to start a conversation",
+    };
+  };
+
+  if (!isLoading && displayPitches.length === 0) {
     return null;
   }
 
   return (
-    <section className="w-full max-w-3xl mx-auto px-4 pb-8 space-y-5 overflow-visible">
+    <section className="w-full max-w-3xl mx-auto px-4 pb-10 space-y-5 overflow-visible">
       {/* Header bar of results */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-zinc-800/80">
-        <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-            <Sparkles className="w-3.5 h-3.5" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
+        <div className="flex items-center flex-wrap gap-2">
+          <div className="h-7 w-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+            <Sparkles className="w-4 h-4" />
           </div>
           <h2 className="text-base font-bold text-white font-sans">
-            Personalized Icebreakers <span className="text-zinc-400 font-normal font-mono text-xs">({icebreakers.length || 3})</span>
+            Personalized Pitch Options <span className="text-zinc-400 font-normal font-mono text-xs">({displayPitches.length || 3})</span>
           </h2>
+          {goal && (
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300 font-medium border border-zinc-700/60 flex items-center gap-1.5">
+              <Target className="w-3 h-3 text-indigo-400" />
+              {goal.split(" (")[0]}
+            </span>
+          )}
           <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-medium border border-zinc-700/60">
             {tone} Tone
           </span>
         </div>
 
-        {/* Global actions: Regenerate & Copy All */}
+        {/* Global actions: Copy All & Regenerate */}
         <div className="flex items-center gap-2">
-          {icebreakers.length > 0 && !isLoading && (
+          {displayPitches.length > 0 && !isLoading && (
             <button
               type="button"
-              onClick={copyAllIcebreakers}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 transition-colors cursor-pointer"
+              onClick={copyAllPitches}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 transition-colors cursor-pointer shadow-sm"
             >
               {copiedAll ? (
                 <>
@@ -97,7 +147,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
               ) : (
                 <>
                   <Layers className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Copy All</span>
+                  <span>Copy All Pitches</span>
                 </>
               )}
             </button>
@@ -134,7 +184,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
                       Gemini 2.5 Flash Engine
                     </span>
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                      Generating
+                      Analyzing
                     </span>
                   </div>
                   <p className="text-xs text-indigo-200/90 font-medium transition-all duration-300 flex items-center gap-1.5 mt-0.5">
@@ -170,10 +220,9 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="h-5 w-7 bg-zinc-800 rounded-md animate-pulse" />
-                  <div className="h-4 w-28 bg-zinc-800 rounded-md animate-pulse" />
-                  <div className="hidden sm:block h-3 w-40 bg-zinc-850 rounded animate-pulse" />
+                  <div className="h-4 w-36 bg-zinc-800 rounded-md animate-pulse" />
                 </div>
-                <div className="h-7 w-16 bg-zinc-800 rounded-lg animate-pulse" />
+                <div className="h-7 w-20 bg-zinc-800 rounded-lg animate-pulse" />
               </div>
 
               {/* Shimmering Text Lines */}
@@ -182,48 +231,50 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
                 <div className="h-4 w-5/6 bg-zinc-800/70 rounded-md animate-pulse" />
                 <div className="h-4 w-3/5 bg-zinc-800/50 rounded-md animate-pulse" />
               </div>
-
-              <div className="flex items-center justify-between pt-1">
-                <div className="h-3 w-36 bg-zinc-850 rounded animate-pulse" />
-                <div className="h-3 w-20 bg-zinc-850 rounded animate-pulse" />
-              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Icebreaker Cards */}
-      {!isLoading && icebreakers.length > 0 && (
+      {/* Generated Pitch Cards */}
+      {!isLoading && displayPitches.length > 0 && (
         <div className="space-y-4">
-          {icebreakers.map((line, index) => {
-            const hook = HOOK_TYPES[index % HOOK_TYPES.length];
+          {displayPitches.map((item, index) => {
+            const hookStyle = getHookBadgeStyles(item.hookType);
             const isCopied = copiedIndex === index;
+            const wordCount = item.pitch.split(/\s+/).filter(Boolean).length;
 
             return (
               <div
                 key={index}
-                className="group relative rounded-2xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700/90 p-5 sm:p-6 transition-all shadow-lg hover:shadow-xl hover:shadow-indigo-500/5 backdrop-blur-sm"
+                className="group relative rounded-2xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700 p-5 sm:p-6 transition-all shadow-lg hover:shadow-xl hover:shadow-indigo-500/5 backdrop-blur-sm"
               >
-                {/* Card Top Metadata */}
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
+                {/* Card Top Metadata & Hook Classification */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3.5">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="flex items-center justify-center w-5 h-5 rounded-md bg-indigo-500/10 text-indigo-400 font-mono text-xs font-bold border border-indigo-500/20">
                       #{index + 1}
                     </span>
-                    <span className="text-xs font-semibold text-zinc-300">
-                      {hook.label}
+
+                    {/* Hook Type Pill */}
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${hookStyle.badge}`}>
+                      {hookStyle.icon}
+                      <span>{item.hookType}</span>
+                    </div>
+
+                    <span className="hidden md:inline text-xs text-zinc-400">
+                      • {item.tagline || hookStyle.defaultTag}
                     </span>
-                    <span className="hidden sm:inline text-xs text-zinc-400">• {hook.desc}</span>
                   </div>
 
-                  {/* Copy Button */}
+                  {/* Prominent "Copy Pitch" Button */}
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(line, index)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-sm ${
+                    onClick={() => copyToClipboard(item.pitch, index)}
+                    className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-sm self-start sm:self-auto ${
                       isCopied
                         ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                        : "bg-zinc-800/80 hover:bg-indigo-600 text-zinc-200 hover:text-white border border-zinc-700/80 hover:border-indigo-500"
+                        : "bg-zinc-800/90 hover:bg-indigo-600 text-zinc-200 hover:text-white border border-zinc-700/80 hover:border-indigo-500"
                     }`}
                   >
                     {isCopied ? (
@@ -234,67 +285,69 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
                     ) : (
                       <>
                         <Copy className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
-                        <span>Copy</span>
+                        <span>Copy Pitch</span>
                       </>
                     )}
                   </button>
                 </div>
 
-                {/* Icebreaker Content */}
-                <div className="bg-zinc-950/60 rounded-xl p-4 border border-zinc-800/70 mb-3">
+                {/* Pitch Content */}
+                <div className="bg-zinc-950/70 rounded-xl p-4 sm:p-5 border border-zinc-800/80 mb-3">
                   <p className="text-zinc-100 text-sm sm:text-base font-normal leading-relaxed selection:bg-indigo-500/40">
-                    "{line}"
+                    "{item.pitch}"
                   </p>
                 </div>
 
-                {/* Bottom Card Utility: Expandable Cold Email Framework */}
+                {/* Bottom Card Utility: Expandable Context Drawer & Word Count */}
                 <div className="flex items-center justify-between text-xs text-zinc-400 pt-1">
                   <button
                     type="button"
                     onClick={() =>
                       setPreviewTemplateIndex(previewTemplateIndex === index ? null : index)
                     }
-                    className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors cursor-pointer"
                   >
                     <MessageSquareText className="w-3.5 h-3.5" />
                     <span>
                       {previewTemplateIndex === index
-                        ? "Hide full email context"
-                        : "Preview in ready cold email template"}
+                        ? "Hide full email / DM template"
+                        : "Preview in complete cold outreach template"}
                     </span>
                   </button>
 
                   <span className="text-[11px] font-mono text-zinc-400">
-                    ~{line.split(" ").length} words
+                    ~{wordCount} words
                   </span>
                 </div>
 
-                {/* Full Cold Email Preview Drawer */}
+                {/* Full Cold Message Preview Drawer */}
                 {previewTemplateIndex === index && (
-                  <div className="mt-4 p-4 rounded-xl bg-zinc-950 border border-indigo-500/30 text-xs font-mono text-zinc-300 space-y-2.5">
+                  <div className="mt-4 p-4 rounded-xl bg-zinc-950 border border-indigo-500/30 text-xs font-mono text-zinc-300 space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-zinc-800 text-zinc-400 text-[11px]">
-                      <span>Subject: Quick question about your workflow at [Company]</span>
+                      <span>Ready Template • {item.hookType}</span>
                       <button
                         type="button"
                         onClick={() => {
-                          const fullEmail = `Hi [First Name],\n\n${line}\n\nWe recently helped a similar team cut outbound cycle times by 40% using automated workflow triggers.\n\nOpen to a brief 5-minute chat on Thursday?\n\nBest,\n[Your Name]`;
+                          const fullEmail = `Hi [First Name],\n\n${item.pitch}\n\n${offer ? `${offer}\n\n` : ""}Would you be open to a brief 5-minute chat or seeing a quick concept?\n\nBest,\n[Your Name]`;
                           navigator.clipboard.writeText(fullEmail);
                           setCopiedIndex(index);
                           setTimeout(() => setCopiedIndex(null), 2000);
                         }}
-                        className="text-indigo-400 hover:text-indigo-300 font-semibold"
+                        className="text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer"
                       >
-                        Copy Full Email
+                        Copy Full Template
                       </button>
                     </div>
                     <div className="text-zinc-400">Hi [First Name],</div>
-                    <div className="text-indigo-200 bg-indigo-950/30 p-2 rounded border border-indigo-500/20 font-sans text-sm">
-                      {line}
+                    <div className="text-indigo-200 bg-indigo-950/30 p-3 rounded-lg border border-indigo-500/20 font-sans text-sm leading-relaxed">
+                      {item.pitch}
                     </div>
-                    <div className="text-zinc-400">
-                      We recently helped a similar team cut outbound cycle times by 40% using automated workflow triggers.
-                    </div>
-                    <div className="text-zinc-400">Open to a brief 5-minute chat on Thursday?</div>
+                    {offer && (
+                      <div className="text-zinc-300 bg-zinc-900/50 p-2.5 rounded border border-zinc-800 font-sans text-xs">
+                        {offer}
+                      </div>
+                    )}
+                    <div className="text-zinc-400">Would you be open to a brief 5-minute chat or seeing a quick concept?</div>
                     <div className="text-zinc-400">Best, <br />[Your Name]</div>
                   </div>
                 )}
@@ -305,16 +358,16 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
       )}
 
       {/* Tone Quick Switcher Pill Bar */}
-      {!isLoading && icebreakers.length > 0 && (
+      {!isLoading && displayPitches.length > 0 && (
         <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <span className="text-zinc-400 font-medium">Want to experiment with a different style?</span>
+          <span className="text-zinc-400 font-medium">Want to experiment with a different tone of voice?</span>
           <div className="flex items-center gap-1.5 flex-wrap">
             {TONE_OPTIONS.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => onChangeTone(t.id)}
-                className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
+                className={`px-2.5 py-1 rounded-lg transition-colors font-medium cursor-pointer ${
                   tone === t.id
                     ? "bg-indigo-600 text-white shadow-sm"
                     : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"

@@ -1,47 +1,25 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Header } from "./components/Header";
 import { HeroInput } from "./components/HeroInput";
 import { HowToUse } from "./components/HowToUse";
 import { OutputSection } from "./components/OutputSection";
 import { ApiKeyModal } from "./components/ApiKeyModal";
-import { ToneOption } from "./types";
+import { ToneOption, OutreachGoal, PitchOption } from "./types";
+import { buildPrompt, parsePitchOptions } from "./services/gemini";
+import { OUTREACH_GOALS } from "./data/constants";
 
 // WARNING: Client-side Gemini API call requested by user. Exposing API keys in client-side code is acceptable when explicitly requested with client-provided keys.
 
 const DEFAULT_KEY = "AQ.Ab8RN6L5QDp0kDnz4wAuLimYkPEWNUy_xh0v70fa-uHRIgqtog";
 
-function parseIcebreakers(rawText: string): string[] {
-  try {
-    const cleaned = rawText.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.map((item) => String(item).trim()).filter(Boolean);
-    }
-  } catch {
-    const match = rawText.match(/\[[\s\S]*\]/);
-    if (match) {
-      try {
-        const parsed = JSON.parse(match[0]);
-        if (Array.isArray(parsed)) {
-          return parsed.map((item) => String(item).trim()).filter(Boolean);
-        }
-      } catch {}
-    }
-    const lines = rawText
-      .split("\n")
-      .map((l) => l.replace(/^[-*\d.)\]]+\s*/, "").replace(/^["']|["']$/g, "").trim())
-      .filter((l) => l.length > 20);
-    if (lines.length > 0) {
-      return lines.slice(0, 3);
-    }
-  }
-  return [];
-}
-
 export default function App() {
   const [input, setInput] = useState<string>("linear.app");
-  const [tone, setTone] = useState<ToneOption>("Professional");
+  const [goal, setGoal] = useState<OutreachGoal>("Freelance / Service Pitch");
+  const [offer, setOffer] = useState<string>(
+    "I help tech brands repurpose product updates into high-performing short video posts and organic content."
+  );
+  const [tone, setTone] = useState<ToneOption>("Casual");
   const [apiKey, setApiKey] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("coldline_gemini_api_key") || DEFAULT_KEY;
@@ -49,10 +27,27 @@ export default function App() {
     return DEFAULT_KEY;
   });
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
+  const [pitches, setPitches] = useState<PitchOption[]>([
+    {
+      hookType: "Observation Hook",
+      tagline: "Highlighting something specific about their recent posts/company work",
+      pitch: "Noticed Linear's Twitter design teasers get crazy reach, but the video walkthroughs could double conversions on LinkedIn. I help tech brands repurpose product updates into high-performing short video posts—would you be open to seeing 2 quick video concepts I drafted for Linear?",
+    },
+    {
+      hookType: "Direct Pitch Hook",
+      tagline: "Directly connecting user's service/skill to a problem the company might be facing",
+      pitch: "Saw your recent release on automated cycle velocity tracking. A lot of dev tools struggle to turn complex engineering features into high-converting video demos for non-technical buyers—I help SaaS teams bridge that gap with snappy 45-second product teasers.",
+    },
+    {
+      hookType: "Soft Inquiry Hook",
+      tagline: "A low-friction opening question to start a conversation",
+      pitch: "Huge fan of Linear's keyboard-first workflows and clean changelog design. Quick question: are you currently looking to expand organic video distribution for feature drops across LinkedIn this quarter?",
+    },
+  ]);
   const [icebreakers, setIcebreakers] = useState<string[]>([
-    "Noticed how Linear continues to set the gold standard for snappy keyboard-first UX—the new sub-issue workflows are genuinely impressive.",
-    "Saw your recent release on automated project velocity tracking; curious if engineering lead times across remote teams have tightened as a result.",
-    "Given Linear's laser focus on high-craft product execution, I was curious how you currently eliminate friction in cross-team cycle reporting."
+    "Noticed Linear's Twitter design teasers get crazy reach, but the video walkthroughs could double conversions on LinkedIn. I help tech brands repurpose product updates into high-performing short video posts—would you be open to seeing 2 quick video concepts I drafted for Linear?",
+    "Saw your recent release on automated cycle velocity tracking. A lot of dev tools struggle to turn complex engineering features into high-converting video demos for non-technical buyers—I help SaaS teams bridge that gap with snappy 45-second product teasers.",
+    "Huge fan of Linear's keyboard-first workflows and clean changelog design. Quick question: are you currently looking to expand organic video distribution for feature drops across LinkedIn this quarter?",
   ]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
@@ -69,13 +64,13 @@ export default function App() {
   const handleGenerate = async (overrideTone?: ToneOption) => {
     const activeTone = overrideTone || tone;
     if (!input.trim()) {
-      setErrorMessage("Please provide a prospect website URL or company description.");
+      setErrorMessage("Please provide a target prospect website URL or company description.");
       return;
     }
 
     const effectiveKey = apiKey.trim() || (typeof window !== "undefined" ? localStorage.getItem("coldline_gemini_api_key") || "" : "");
     if (!effectiveKey) {
-      setErrorMessage("Please configure your Gemini API Key in Settings or the input box to generate icebreakers.");
+      setErrorMessage("Please configure your Gemini API Key in Settings or the input box to generate pitches.");
       return;
     }
 
@@ -85,17 +80,12 @@ export default function App() {
     try {
       // Direct client-side SDK call using @google/generative-ai
       const genAI = new GoogleGenerativeAI(effectiveKey);
-
-      const prompt = `You are a world-class B2B sales copywriter specializing in cold email outreach.
-Generate exactly 3 personalized, high-converting opening icebreaker sentences targeting this prospect:
-"${input.trim()}"
-
-Tone: ${activeTone}
-Rules:
-- 1-2 punchy sentences each.
-- Reference specific relevance, observations, or value propositions without fluff.
-- No generic openings (e.g. do NOT say "I hope you are doing well").
-- Output ONLY a JSON array of 3 strings. Example format: ["Line 1", "Line 2", "Line 3"]`;
+      const prompt = buildPrompt({
+        input: input.trim(),
+        goal,
+        offer,
+        tone: activeTone,
+      });
 
       let rawText = "";
 
@@ -126,17 +116,18 @@ Rules:
         }
       }
 
-      const parsed = parseIcebreakers(rawText);
-      if (parsed.length === 0) {
-        throw new Error("Unable to parse icebreakers from Gemini response. Please try again.");
+      const parsedPitches = parsePitchOptions(rawText);
+      if (parsedPitches.length === 0) {
+        throw new Error("Unable to parse pitch options from Gemini response. Please try again.");
       }
 
-      setIcebreakers(parsed);
+      setPitches(parsedPitches);
+      setIcebreakers(parsedPitches.map((p) => p.pitch));
       const normalized = /^https?:\/\//i.test(input.trim()) ? input.trim() : "https://" + input.trim();
       setNormalizedInput(normalized);
     } catch (err: any) {
       console.error("Browser generation error:", err);
-      let friendly = err?.message || "An error occurred while generating icebreakers.";
+      let friendly = err?.message || "An error occurred while generating pitches.";
       const lower = friendly.toLowerCase();
       if (lower.includes("api_key_invalid") || lower.includes("api key not valid") || lower.includes("unauthorized") || lower.includes("400")) {
         friendly = "Invalid Gemini API Key. Please verify your API key in Settings.";
@@ -175,6 +166,10 @@ Rules:
         <HeroInput
           input={input}
           setInput={setInput}
+          goal={goal}
+          setGoal={setGoal}
+          offer={offer}
+          setOffer={setOffer}
           tone={tone}
           setTone={setTone}
           apiKey={apiKey}
@@ -184,10 +179,13 @@ Rules:
           errorMessage={errorMessage}
         />
 
-        {/* Generated Icebreakers Results Section */}
+        {/* Generated Pitches Results Section */}
         <OutputSection
+          pitches={pitches}
           icebreakers={icebreakers}
           tone={tone}
+          goal={goal}
+          offer={offer}
           isLoading={isLoading}
           onRegenerate={() => handleGenerate()}
           onChangeTone={handleChangeToneAndRegenerate}
@@ -204,18 +202,18 @@ Rules:
           <div className="flex items-center gap-2">
             <span className="font-semibold text-zinc-400">ColdLine AI</span>
             <span>—</span>
-            <span>Micro-SaaS Cold Email Personalizer</span>
+            <span>Micro-SaaS Cold Email & Pitch Personalizer</span>
           </div>
           <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => setIsApiKeyModalOpen(true)}
-              className="text-zinc-400 hover:text-zinc-200 transition-colors"
+              className="text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
             >
               Configure API Key
             </button>
             <span>•</span>
-            <span className="font-mono text-zinc-400">Google Gemini</span>
+            <span className="font-mono text-zinc-400">Gemini 2.5 Flash</span>
           </div>
         </div>
       </footer>
