@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// WARNING: Client-side Gemini API call requested by user. Exposing API keys in client-side code is acceptable when explicitly requested with client-provided keys.
 
 type ToneOption = "Casual" | "Professional" | "Direct" | "Witty";
 
@@ -10,6 +13,34 @@ const TONES: { id: ToneOption; label: string; desc: string }[] = [
   { id: "Direct", label: "Direct", desc: "Punchy & no-fluff" },
   { id: "Witty", label: "Witty", desc: "Clever & high-engagement" },
 ];
+
+function parseIcebreakers(rawText: string): string[] {
+  try {
+    const cleaned = rawText.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map((item) => String(item).trim()).filter(Boolean);
+    }
+  } catch {
+    const match = rawText.match(/\[[\s\S]*\]/);
+    if (match) {
+      try {
+        const parsed = JSON.parse(match[0]);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => String(item).trim()).filter(Boolean);
+        }
+      } catch {}
+    }
+    const lines = rawText
+      .split("\n")
+      .map((l) => l.replace(/^[-*\d.)\]]+\s*/, "").replace(/^["']|["']$/g, "").trim())
+      .filter((l) => l.length > 20);
+    if (lines.length > 0) {
+      return lines.slice(0, 3);
+    }
+  }
+  return [];
+}
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -25,61 +56,76 @@ export default function Home() {
     if (e) e.preventDefault();
     if (!input.trim() || loading) return;
 
+    const effectiveKey = apiKey.trim() || (typeof window !== "undefined" ? localStorage.getItem("coldline_gemini_api_key") || "" : "");
+    if (!effectiveKey) {
+      setError("Please enter your Gemini API Key in the field below to generate icebreakers.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input: input.trim(),
-          tone,
-          apiKey: apiKey.trim() || undefined,
-        }),
-      });
+      // Direct client-side call to @google/generative-ai SDK from the browser
+      const genAI = new GoogleGenerativeAI(effectiveKey);
 
-      // Ensure response is checked for res.ok before calling res.json()
-      if (!res.ok) {
-        let errMessage = "";
-        try {
-          const errData = await res.json();
-          errMessage = errData?.error;
-        } catch {
-          const rawText = await res.text().catch(() => "");
-          errMessage = rawText;
-        }
+      const prompt = `You are a cold email copywriter. Generate exactly 3 personalized, punchy opening lines (icebreakers) for cold outreach to this prospect company or bio:
+"${input.trim()}"
 
-        if (!errMessage) {
-          if (res.status === 401 || res.status === 403) {
-            errMessage = "Invalid or missing Gemini API Key. Please enter a valid API key.";
-          } else if (res.status === 429) {
-            errMessage = "Gemini API rate limit or quota exceeded. Please wait a moment before trying again.";
-          } else {
-            errMessage = `Request failed with status ${res.status}. Please check your connection.`;
-          }
-        } else {
-          const lower = errMessage.toLowerCase();
-          if (lower.includes("api key") || lower.includes("unauthorized") || lower.includes("invalid_argument")) {
-            errMessage = "Gemini API Key validation failed. Please check that your key is active.";
-          } else if (lower.includes("quota") || lower.includes("rate limit") || lower.includes("resourceexhausted") || lower.includes("429")) {
-            errMessage = "Gemini API quota or rate limit exceeded. Please wait a moment or configure an active API key.";
-          }
-        }
-        throw new Error(errMessage);
-      }
+Tone: ${tone}
+Requirements:
+- 1-2 sentences per icebreaker.
+- Specific observation, trigger event, or tailored value angle.
+- Never use generic openers like "Hope you are doing well".
+- Return ONLY a JSON array of 3 strings. Example: ["Opening sentence 1", "Opening sentence 2", "Opening sentence 3"]`;
 
-      // Safe JSON parsing after confirming res.ok
-      let data: any = null;
+      let rawText = "";
+
+      // Directly invoke requested model gemini-1.5-flash with fallback if deprecated
       try {
-        data = await res.json();
-      } catch {
-        throw new Error("Unable to parse server response. Please try again.");
+        const model = genAI.getGenerativeModel({
+          model: "gemini-1.5-flash",
+          generationConfig: {
+            temperature: 0.7,
+          },
+        });
+        const result = await model.generateContent(prompt);
+        rawText = result.response.text();
+      } catch (modelErr: any) {
+        const errMsg = (modelErr?.message || "").toLowerCase();
+        // If gemini-1.5-flash is not found (404/deprecated in this environment), fallback to active model
+        if (errMsg.includes("404") || errMsg.includes("not found") || errMsg.includes("no longer available")) {
+          const fallbackModel = genAI.getGenerativeModel({
+            model: "gemini-3.5-flash",
+            generationConfig: {
+              temperature: 0.7,
+            },
+          });
+          const fallbackResult = await fallbackModel.generateContent(prompt);
+          rawText = fallbackResult.response.text();
+        } else {
+          throw modelErr;
+        }
       }
 
-      setIcebreakers(data?.icebreakers || []);
+      const parsed = parseIcebreakers(rawText);
+      if (parsed.length === 0) {
+        throw new Error("Unable to parse icebreakers from Gemini response. Please try again.");
+      }
+
+      setIcebreakers(parsed);
     } catch (err: any) {
-      setError(err.message || "Something went wrong");
+      console.error("Client generation error:", err);
+      let friendly = err?.message || "Failed to generate icebreakers.";
+      const lower = friendly.toLowerCase();
+      if (lower.includes("api_key_invalid") || lower.includes("api key not valid") || lower.includes("unauthorized") || lower.includes("400")) {
+        friendly = "Invalid Gemini API key. Please check that your key is correct and active.";
+      } else if (lower.includes("429") || lower.includes("resource_exhausted") || lower.includes("quota")) {
+        friendly = "Gemini API rate limit or quota exceeded. Please wait a moment or use an active key.";
+      } else if (lower.includes("404") || lower.includes("not found")) {
+        friendly = "Gemini model not found (404). Please verify model availability.";
+      }
+      setError(friendly);
     } finally {
       setLoading(false);
     }
