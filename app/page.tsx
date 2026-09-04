@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Linkedin } from "lucide-react";
 
 // WARNING: Client-side Gemini API call requested by user. Exposing API keys in client-side code is acceptable when explicitly requested with client-provided keys.
 
@@ -186,19 +187,33 @@ Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Secondary/Ghost Discord Community Button */}
             <a
               id="app-nav-discord-link"
               href="https://discord.gg/AYGswmwfG"
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-[#5865F2]/40 transition-all shadow-sm"
+              className="group inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-[#5865F2]/40 transition-all shadow-sm"
               title="Join Discord Community / Share Feedback"
             >
               <DiscordIcon className="w-3.5 h-3.5 text-[#5865F2] group-hover:scale-110 transition-transform" />
-              <span className="hidden xs:inline sm:inline">Join Community</span>
-              <span className="xs:hidden sm:hidden">Community</span>
+              <span className="hidden md:inline">Join Community</span>
+              <span className="hidden xs:inline md:hidden">Discord</span>
+            </a>
+
+            {/* Official LinkedIn Button */}
+            <a
+              id="app-nav-linkedin-link"
+              href="https://www.linkedin.com/company/coldlineai/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-[#0A66C2]/40 transition-all shadow-sm"
+              title="Follow ColdLine AI on LinkedIn"
+              aria-label="ColdLine AI LinkedIn Page"
+            >
+              <Linkedin className="w-3.5 h-3.5 text-[#0A66C2] group-hover:scale-110 transition-transform" />
+              <span className="hidden xs:inline">LinkedIn</span>
             </a>
 
             <span className="text-xs px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono hidden sm:inline-block">
@@ -456,12 +471,12 @@ Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
               </p>
             </div>
 
-            {/* Community & Support */}
+            {/* Community & Connect */}
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                Community & Support
+                Community & Connect
               </h3>
-              <ul className="space-y-2 text-xs">
+              <ul className="space-y-2.5 text-xs">
                 <li>
                   <a
                     id="app-footer-discord-link"
@@ -476,8 +491,22 @@ Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
                     </span>
                   </a>
                 </li>
-                <li className="text-[11px] text-zinc-500 leading-normal">
-                  Ask questions, report edge-case bugs, or share cold outreach feedback.
+                <li>
+                  <a
+                    id="app-footer-linkedin-link"
+                    href="https://www.linkedin.com/company/coldlineai/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center gap-2 text-zinc-300 hover:text-white transition-colors"
+                  >
+                    <Linkedin className="w-4 h-4 text-[#0A66C2] group-hover:scale-110 transition-transform" />
+                    <span className="font-medium group-hover:underline underline-offset-4">
+                      LinkedIn
+                    </span>
+                  </a>
+                </li>
+                <li className="text-[11px] text-zinc-500 leading-normal pt-0.5">
+                  Connect with our team, get cold email frameworks, or share product feedback.
                 </li>
               </ul>
             </div>
@@ -519,6 +548,16 @@ Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
               >
                 <DiscordIcon className="w-3.5 h-3.5 text-[#5865F2]" />
                 <span>Discord</span>
+              </a>
+              <span>•</span>
+              <a
+                href="https://www.linkedin.com/company/coldlineai/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-zinc-300 transition-colors flex items-center gap-1.5"
+              >
+                <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
+                <span>LinkedIn</span>
               </a>
             </div>
           </div>

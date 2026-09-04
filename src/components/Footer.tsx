@@ -1,5 +1,5 @@
 import React from "react";
-import { Mail, ExternalLink, Key } from "lucide-react";
+import { Mail, ExternalLink, Key, Linkedin } from "lucide-react";
 import { DiscordIcon } from "./Header";
 
 interface FooterProps {
@@ -27,12 +27,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApiKeyModal }) => {
             </p>
           </div>
 
-          {/* Community & Support Section */}
+          {/* Community & Connect Section */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-              Community & Support
+              Community & Connect
             </h3>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2.5 text-xs">
               <li>
                 <a
                   id="footer-discord-link"
@@ -48,8 +48,23 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApiKeyModal }) => {
                   <ExternalLink className="w-3 h-3 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
                 </a>
               </li>
-              <li className="text-[11px] text-zinc-500 leading-normal">
-                Connect with our community, request custom pitch templates, or get instant help.
+              <li>
+                <a
+                  id="footer-linkedin-link"
+                  href="https://www.linkedin.com/company/coldlineai/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-2 text-zinc-300 hover:text-white transition-colors"
+                >
+                  <Linkedin className="w-4 h-4 text-[#0A66C2] group-hover:scale-110 transition-transform" />
+                  <span className="font-medium group-hover:underline underline-offset-4">
+                    LinkedIn
+                  </span>
+                  <ExternalLink className="w-3 h-3 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
+                </a>
+              </li>
+              <li className="text-[11px] text-zinc-500 leading-normal pt-0.5">
+                Connect with our team, get cold email frameworks, or share product feedback.
               </li>
             </ul>
           </div>
@@ -100,10 +115,20 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApiKeyModal }) => {
               href="https://discord.gg/AYGswmwfG"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-zinc-300 transition-colors flex items-center gap-1"
+              className="hover:text-zinc-300 transition-colors flex items-center gap-1.5"
             >
               <DiscordIcon className="w-3.5 h-3.5 text-[#5865F2]" />
               <span>Discord</span>
+            </a>
+            <span>•</span>
+            <a
+              href="https://www.linkedin.com/company/coldlineai/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-zinc-300 transition-colors flex items-center gap-1.5"
+            >
+              <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
+              <span>LinkedIn</span>
             </a>
             <span>•</span>
             <button

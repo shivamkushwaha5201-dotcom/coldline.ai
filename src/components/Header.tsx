@@ -1,5 +1,5 @@
 import React from "react";
-import { Mail } from "lucide-react";
+import { Mail, Linkedin } from "lucide-react";
 
 interface HeaderProps {
   onOpenApiKeyModal: () => void;
@@ -43,19 +43,33 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Secondary/Ghost Discord Community Button */}
           <a
             id="nav-discord-link"
             href="https://discord.gg/AYGswmwfG"
             target="_blank"
             rel="noopener noreferrer"
-            className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-[#5865F2]/40 transition-all duration-150 shadow-sm cursor-pointer"
+            className="group inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-[#5865F2]/40 transition-all duration-150 shadow-sm cursor-pointer"
             title="Join Discord Community / Share Feedback"
           >
             <DiscordIcon className="w-3.5 h-3.5 text-[#5865F2] group-hover:scale-110 transition-transform duration-150" />
-            <span className="hidden xs:inline sm:inline">Join Community</span>
-            <span className="xs:hidden sm:hidden">Community</span>
+            <span className="hidden md:inline">Join Community</span>
+            <span className="hidden xs:inline md:hidden">Discord</span>
+          </a>
+
+          {/* Official LinkedIn Button */}
+          <a
+            id="nav-linkedin-link"
+            href="https://www.linkedin.com/company/coldlineai/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-[#0A66C2]/40 transition-all duration-150 shadow-sm cursor-pointer"
+            title="Follow ColdLine AI on LinkedIn"
+            aria-label="ColdLine AI LinkedIn Page"
+          >
+            <Linkedin className="w-3.5 h-3.5 text-[#0A66C2] group-hover:scale-110 transition-transform duration-150" />
+            <span className="hidden xs:inline">LinkedIn</span>
           </a>
 
           {/* API Key Manager Button */}
@@ -63,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
             id="nav-api-key-button"
             type="button"
             onClick={onOpenApiKeyModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 hover:border-zinc-700 transition-colors shadow-sm cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-mono bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 hover:border-zinc-700 transition-colors shadow-sm cursor-pointer"
             title="Configure or Paste Gemini API Key"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
