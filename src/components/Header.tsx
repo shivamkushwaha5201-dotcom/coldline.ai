@@ -1,9 +1,11 @@
-import React from "react";
-import { Mail, Linkedin } from "lucide-react";
+import React, { useState } from "react";
+import { Mail, Linkedin, Key, Eye, EyeOff } from "lucide-react";
 
 interface HeaderProps {
+  apiKey: string;
+  onApiKeyChange: (key: string) => void;
   onOpenApiKeyModal: () => void;
-  hasApiKey: boolean;
+  hasApiKey?: boolean;
   apiKeyPreview?: string;
 }
 
@@ -20,15 +22,18 @@ export const DiscordIcon: React.FC<{ className?: string }> = ({ className = "w-4
 );
 
 export const Header: React.FC<HeaderProps> = ({
+  apiKey,
+  onApiKeyChange,
   onOpenApiKeyModal,
-  hasApiKey,
-  apiKeyPreview,
 }) => {
+  const [showRawKey, setShowRawKey] = useState<boolean>(false);
+  const isKeyEntered = Boolean(apiKey && apiKey.trim().length > 0);
+
   return (
     <header className="border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-40">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
         {/* Brand */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 border border-indigo-400/30">
             <Mail className="w-5 h-5 text-white" />
           </div>
@@ -50,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
             href="https://discord.gg/AYGswmwfG"
             target="_blank"
             rel="noopener noreferrer"
-            className="group inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-[#5865F2]/40 transition-all duration-150 shadow-sm cursor-pointer"
+            className="group inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-[#5865F2]/40 transition-all duration-150 shadow-sm cursor-pointer shrink-0"
             title="Join Discord Community / Share Feedback"
           >
             <DiscordIcon className="w-3.5 h-3.5 text-[#5865F2] group-hover:scale-110 transition-transform duration-150" />
@@ -64,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
             href="https://www.linkedin.com/company/coldlineai/"
             target="_blank"
             rel="noopener noreferrer"
-            className="group inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-[#0A66C2]/40 transition-all duration-150 shadow-sm cursor-pointer"
+            className="group inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-[#0A66C2]/40 transition-all duration-150 shadow-sm cursor-pointer shrink-0"
             title="Follow ColdLine AI on LinkedIn"
             aria-label="ColdLine AI LinkedIn Page"
           >
@@ -72,20 +77,58 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden xs:inline">LinkedIn</span>
           </a>
 
-          {/* API Key Manager Button */}
-          <button
-            id="nav-api-key-button"
-            type="button"
-            onClick={onOpenApiKeyModal}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-mono bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 hover:border-zinc-700 transition-colors shadow-sm cursor-pointer"
-            title="Configure or Paste Gemini API Key"
+          {/* Direct Top-Right "Key" Input Field */}
+          <div
+            id="nav-api-key-container"
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all shadow-sm"
+            title="Your Gemini API key is stored only in your local browser storage"
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="hidden sm:inline font-sans text-zinc-400">Key:</span>
-            <span className="text-indigo-300 font-mono">
-              {apiKeyPreview ? `${apiKeyPreview.slice(0, 6)}...${apiKeyPreview.slice(-4)}` : "Set Key"}
-            </span>
-          </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <span
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  isKeyEntered ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"
+                }`}
+                title={isKeyEntered ? "Key configured locally" : "No API key entered"}
+              />
+              <label
+                htmlFor="header-api-key-input"
+                className="text-xs font-mono font-medium text-zinc-400 select-none cursor-pointer hidden xs:inline"
+              >
+                Key:
+              </label>
+            </div>
+
+            <input
+              id="header-api-key-input"
+              type={showRawKey ? "text" : "password"}
+              value={apiKey}
+              onChange={(e) => onApiKeyChange(e.target.value)}
+              placeholder="Paste Key..."
+              autoComplete="off"
+              spellCheck="false"
+              className="w-20 xs:w-28 sm:w-36 md:w-44 bg-transparent text-xs font-mono text-zinc-100 placeholder:text-zinc-600 focus:outline-none transition-all"
+            />
+
+            {isKeyEntered && (
+              <button
+                type="button"
+                onClick={() => setShowRawKey(!showRawKey)}
+                className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded transition-colors"
+                title={showRawKey ? "Mask API key" : "Reveal API key"}
+              >
+                {showRawKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onOpenApiKeyModal}
+              className="p-1 rounded text-zinc-400 hover:text-indigo-400 hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+              title="Open Gemini API Key Settings & Test"
+            >
+              <Key className="w-3.5 h-3.5 text-indigo-400" />
+            </button>
+          </div>
         </div>
       </div>
     </header>

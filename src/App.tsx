@@ -11,19 +11,18 @@ import { buildPrompt, parsePitchOptions } from "./services/gemini";
 
 // WARNING: Client-side Gemini API call requested by user. Exposing API keys in client-side code is acceptable when explicitly requested with client-provided keys.
 
-const DEFAULT_KEY = "AQ.Ab8RN6L5QDp0kDnz4wAuLimYkPEWNUy_xh0v70fa-uHRIgqtog";
-
 export default function App() {
   const [input, setInput] = useState<string>("linear.app");
   const [userPerspective, setUserPerspective] = useState<string>(
     "I'm a short-form video editor and I want to pitch them on re-editing their podcast clips for TikTok and Reels to boost engagement."
   );
   const [tone, setTone] = useState<ToneOption>("Casual");
+  // Strictly client-local API key state: defaults to empty unless present in the user's browser localStorage
   const [apiKey, setApiKey] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("coldline_gemini_api_key") || DEFAULT_KEY;
+      return localStorage.getItem("coldline_gemini_api_key") || "";
     }
-    return DEFAULT_KEY;
+    return "";
   });
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
   const [pitches, setPitches] = useState<PitchOption[]>([
@@ -52,11 +51,16 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [normalizedInput, setNormalizedInput] = useState<string>("https://linear.app");
 
-  // Sync apiKey to localStorage
+  // Sync apiKey strictly to local browser storage only
   const handleUpdateApiKey = (newKey: string) => {
-    setApiKey(newKey);
+    const trimmed = newKey.trim();
+    setApiKey(trimmed);
     if (typeof window !== "undefined") {
-      localStorage.setItem("coldline_gemini_api_key", newKey);
+      if (trimmed) {
+        localStorage.setItem("coldline_gemini_api_key", trimmed);
+      } else {
+        localStorage.removeItem("coldline_gemini_api_key");
+      }
     }
   };
 
@@ -74,7 +78,8 @@ export default function App() {
 
     const effectiveKey = apiKey.trim() || (typeof window !== "undefined" ? localStorage.getItem("coldline_gemini_api_key") || "" : "");
     if (!effectiveKey) {
-      setErrorMessage("Please configure your Gemini API Key in Settings or the input box to generate pitches.");
+      setErrorMessage("Please enter your Gemini API Key in the top right 'Key' field or Settings to generate pitches.");
+      setIsApiKeyModalOpen(true);
       return;
     }
 
@@ -159,9 +164,9 @@ export default function App() {
 
       {/* Main Header */}
       <Header
+        apiKey={apiKey}
+        onApiKeyChange={handleUpdateApiKey}
         onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
-        hasApiKey={Boolean(apiKey)}
-        apiKeyPreview={apiKey}
       />
 
       {/* App Content */}
@@ -178,6 +183,7 @@ export default function App() {
           onGenerate={() => handleGenerate()}
           isLoading={isLoading}
           errorMessage={errorMessage}
+          onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
         />
 
         {/* Generated Pitches Results Section */}

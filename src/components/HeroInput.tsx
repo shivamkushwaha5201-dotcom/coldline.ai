@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Globe, FileText, Sparkles, ArrowRight, Loader2, Compass, Key, Eye, EyeOff, ExternalLink, User, MessageSquare } from "lucide-react";
 import { ToneOption } from "../types";
 import { TONE_OPTIONS, SAMPLE_PRESETS, SUGGESTED_PERSPECTIVES } from "../data/constants";
+import { QuickGuideBanner } from "./QuickGuideBanner";
 
 interface HeroInputProps {
   input: string;
@@ -15,6 +16,7 @@ interface HeroInputProps {
   onGenerate: () => void;
   isLoading: boolean;
   errorMessage?: string;
+  onOpenApiKeyModal?: () => void;
 }
 
 export const HeroInput: React.FC<HeroInputProps> = ({
@@ -29,6 +31,7 @@ export const HeroInput: React.FC<HeroInputProps> = ({
   onGenerate,
   isLoading,
   errorMessage,
+  onOpenApiKeyModal,
 }) => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [showApiKeyField, setShowApiKeyField] = useState(false);
@@ -50,7 +53,7 @@ export const HeroInput: React.FC<HeroInputProps> = ({
   return (
     <section className="w-full max-w-3xl mx-auto pt-8 pb-8 px-4 overflow-visible">
       {/* Hero Heading */}
-      <div className="text-center space-y-3 mb-8">
+      <div className="text-center space-y-3 mb-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 font-medium shadow-inner">
           <span className="flex h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
           <span>Cold Outreach Intelligence</span>
@@ -66,6 +69,9 @@ export const HeroInput: React.FC<HeroInputProps> = ({
           Provide your unique background, service, or goal alongside any target founder or company to craft 3 personalized opening hooks that command attention.
         </p>
       </div>
+
+      {/* Sleek Collapsible Quick Guide Banner */}
+      <QuickGuideBanner onOpenApiKeyModal={onOpenApiKeyModal} />
 
       {/* Main Input Form Container */}
       <div className="relative rounded-2xl bg-zinc-900/80 border border-zinc-800/90 p-5 sm:p-6 shadow-2xl backdrop-blur-xl ring-1 ring-white/5 transition-all overflow-visible">
@@ -175,7 +181,7 @@ export const HeroInput: React.FC<HeroInputProps> = ({
                 <Key className="w-3.5 h-3.5 text-indigo-400" />
                 Gemini API Key
                 <span className="text-[10px] lowercase font-normal px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
-                  saved in .env.local
+                  stored locally in browser
                 </span>
               </label>
               <div className="flex items-center gap-2">
@@ -194,7 +200,7 @@ export const HeroInput: React.FC<HeroInputProps> = ({
                   onClick={() => setShowApiKeyField(!showApiKeyField)}
                   className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium cursor-pointer"
                 >
-                  {showApiKeyField ? "Hide Key Field" : "Edit / Change Key"}
+                  {showApiKeyField ? "Hide Key Field" : (apiKey.trim() ? "Edit / Change Key" : "Enter Key")}
                 </button>
               </div>
             </div>
@@ -221,18 +227,28 @@ export const HeroInput: React.FC<HeroInputProps> = ({
             ) : (
               <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-950/60 border border-zinc-850 text-xs text-zinc-400">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      apiKey.trim() ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"
+                    }`}
+                  />
                   <span className="font-mono text-zinc-300">
-                    {apiKey ? `${apiKey.slice(0, 8)}...${apiKey.slice(-6)}` : "No key set"}
+                    {apiKey.trim() ? `${apiKey.slice(0, 8)}...${apiKey.slice(-6)}` : "No key set (default: empty)"}
                   </span>
-                  <span className="text-[11px] text-emerald-400/80 font-medium">Ready</span>
+                  <span
+                    className={`text-[11px] font-medium ${
+                      apiKey.trim() ? "text-emerald-400/80" : "text-amber-400/80"
+                    }`}
+                  >
+                    {apiKey.trim() ? "Ready" : "Paste key in header or here"}
+                  </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowApiKeyField(true)}
                   className="text-[11px] text-zinc-400 hover:text-zinc-200 cursor-pointer underline underline-offset-2"
                 >
-                  Change
+                  {apiKey.trim() ? "Change" : "Enter Key"}
                 </button>
               </div>
             )}
@@ -321,6 +337,26 @@ export const HeroInput: React.FC<HeroInputProps> = ({
             <span>{errorMessage}</span>
           </div>
         )}
+      </div>
+
+      {/* Featured on Product Hunt Badge */}
+      <div className="mt-7 mb-1 flex items-center justify-center">
+        <a
+          id="producthunt-featured-badge-hero"
+          href="https://www.producthunt.com/products/coldlineai?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-coldlineai"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
+        >
+          <img
+            src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1241517&theme=light&t=1789207150447"
+            alt="Coldlineai - Turn cold prospects into hot leads with AI-powered pitches | Product Hunt"
+            width={250}
+            height={54}
+            className="w-[220px] sm:w-[250px] h-[48px] sm:h-[54px] rounded-lg shadow-lg shadow-black/30"
+            referrerPolicy="no-referrer"
+          />
+        </a>
       </div>
     </section>
   );

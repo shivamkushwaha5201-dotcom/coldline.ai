@@ -76,7 +76,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-bold text-white">Gemini API Key Configuration</h3>
-              <p className="text-xs text-zinc-400">Integrated into .env.local and stored in local session</p>
+              <p className="text-xs text-zinc-400">Stored privately in your browser's local storage only</p>
             </div>
           </div>
           <button
@@ -94,7 +94,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
             <label htmlFor="apiKeyInput" className="text-xs font-semibold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
               <span>Your Gemini API Key</span>
               <span className="text-[11px] font-normal text-zinc-400 lowercase">
-                Saved in .env.local & browser
+                Stored in browser localStorage only
               </span>
             </label>
 

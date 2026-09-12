@@ -25,6 +25,24 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApiKeyModal }) => {
             <p className="text-xs text-zinc-400 leading-relaxed max-w-xs">
               Micro-SaaS cold outreach intelligence tool. Transforms company signals and user perspectives into 3 personalized, high-converting opening hooks.
             </p>
+            <div className="pt-1">
+              <a
+                id="producthunt-featured-badge-footer"
+                href="https://www.producthunt.com/products/coldlineai?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-coldlineai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <img
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1241517&theme=light&t=1789207150447"
+                  alt="Coldlineai - Turn cold prospects into hot leads with AI-powered pitches | Product Hunt"
+                  width={210}
+                  height={45}
+                  className="w-[190px] sm:w-[210px] h-auto rounded-lg shadow-sm"
+                  referrerPolicy="no-referrer"
+                />
+              </a>
+            </div>
           </div>
 
           {/* Community & Connect Section */}

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Linkedin } from "lucide-react";
+import { Linkedin, Sparkles, ExternalLink } from "lucide-react";
 
 // WARNING: Client-side Gemini API call requested by user. Exposing API keys in client-side code is acceptable when explicitly requested with client-provided keys.
 
@@ -208,7 +208,7 @@ Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
               href="https://www.linkedin.com/company/coldlineai/"
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-[#0A66C2]/40 transition-all shadow-sm"
+              className="group inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-[#0A66C2]/40 transition-all shadow-sm shrink-0"
               title="Follow ColdLine AI on LinkedIn"
               aria-label="ColdLine AI LinkedIn Page"
             >
@@ -216,9 +216,47 @@ Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
               <span className="hidden xs:inline">LinkedIn</span>
             </a>
 
-            <span className="text-xs px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono hidden sm:inline-block">
-              Gemini 2.5 Flash
-            </span>
+            {/* Direct Top-Right Key Input Field */}
+            <div
+              id="app-nav-api-key-container"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all shadow-sm"
+              title="Your Gemini API key is stored only in your local browser storage"
+            >
+              <div className="flex items-center gap-1 shrink-0">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                    apiKey.trim() ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"
+                  }`}
+                  title={apiKey.trim() ? "Key configured locally" : "No API key entered"}
+                />
+                <label
+                  htmlFor="app-header-api-key-input"
+                  className="text-xs font-mono font-medium text-zinc-400 select-none cursor-pointer hidden xs:inline"
+                >
+                  Key:
+                </label>
+              </div>
+
+              <input
+                id="app-header-api-key-input"
+                type="password"
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  if (typeof window !== "undefined") {
+                    if (e.target.value.trim()) {
+                      localStorage.setItem("coldline_gemini_api_key", e.target.value.trim());
+                    } else {
+                      localStorage.removeItem("coldline_gemini_api_key");
+                    }
+                  }
+                }}
+                placeholder="Paste Key..."
+                autoComplete="off"
+                spellCheck="false"
+                className="w-20 xs:w-28 sm:w-36 bg-transparent text-xs font-mono text-zinc-100 placeholder:text-zinc-600 focus:outline-none transition-all"
+              />
+            </div>
           </div>
         </div>
       </header>
@@ -232,6 +270,56 @@ Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
           <p className="text-zinc-400 max-w-xl mx-auto text-sm sm:text-base">
             Paste any company website URL or bio snippet along with your unique background and perspective to generate 3 high-converting hooks.
           </p>
+        </div>
+
+        {/* How to use ColdLine AI Quick Guide Banner */}
+        <div className="w-full rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-zinc-900/70 p-4 sm:p-5 backdrop-blur-md shadow-xl shadow-indigo-950/20">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+            <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
+              How to use ColdLine AI
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-indigo-500/20">
+            <div className="rounded-xl bg-zinc-950/70 border border-indigo-500/20 p-3 flex flex-col justify-between">
+              <div>
+                <span className="inline-block px-1.5 py-0.5 text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 rounded mb-1">
+                  Step 1
+                </span>
+                <p className="text-xs text-zinc-300 font-medium">Get your free Google Gemini API Key</p>
+                <p className="text-[11px] text-zinc-400 mt-1">Directly from Google AI Studio portal.</p>
+              </div>
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium mt-2 inline-flex items-center gap-1"
+              >
+                <span>Get API Key</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
+            <div className="rounded-xl bg-zinc-950/70 border border-indigo-500/20 p-3 flex flex-col justify-between">
+              <div>
+                <span className="inline-block px-1.5 py-0.5 text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 rounded mb-1">
+                  Step 2
+                </span>
+                <p className="text-xs text-zinc-300 font-medium">Paste your API Key in top right</p>
+                <p className="text-[11px] text-zinc-400 mt-1">Use the "Key" input field in the header. Saved locally on this browser only.</p>
+              </div>
+            </div>
+            <div className="rounded-xl bg-zinc-950/70 border border-indigo-500/20 p-3 flex flex-col justify-between">
+              <div>
+                <span className="inline-block px-1.5 py-0.5 text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 rounded mb-1">
+                  Step 3
+                </span>
+                <p className="text-xs text-zinc-300 font-medium">Enter details & click Generate</p>
+                <p className="text-[11px] text-zinc-400 mt-1">Target link + your background to receive 3 tailored opening pitches.</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Input Card */}
@@ -283,7 +371,7 @@ Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
                 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5"
               >
                 <span>Gemini API Key</span>
-                <span className="text-[10px] text-zinc-500 font-mono normal-case">(.env.local or paste here)</span>
+                <span className="text-[10px] text-zinc-500 font-mono normal-case">(stored in browser localStorage only)</span>
               </label>
               <button
                 type="button"
@@ -353,6 +441,26 @@ Example: ["Hook 1...", "Hook 2...", "Hook 3..."]`;
             </p>
           )}
         </form>
+
+        {/* Product Hunt Featured Badge */}
+        <div className="flex items-center justify-center py-2">
+          <a
+            id="producthunt-featured-badge-app"
+            href="https://www.producthunt.com/products/coldlineai?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-coldlineai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]"
+          >
+            <img
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1241517&theme=light&t=1789207150447"
+              alt="Coldlineai - Turn cold prospects into hot leads with AI-powered pitches | Product Hunt"
+              width={250}
+              height={54}
+              className="w-[220px] sm:w-[250px] h-[48px] sm:h-[54px] rounded-lg shadow-lg shadow-black/30"
+              referrerPolicy="no-referrer"
+            />
+          </a>
+        </div>
 
         {/* Results Section */}
         {icebreakers.length > 0 && (
